@@ -14,7 +14,6 @@ import os
 import cv2
 import numpy as np
 
-os.chdir(os.path.dirname(__file__))
 
 
 def show_image(image: np.ndarray) -> None:
@@ -300,8 +299,10 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    import main
-    img2, img1 = main.read_image()
+    os.chdir(os.path.dirname(__file__))
+    
+    img1 = cv2.imread("../resource/5-down.jpg")
+    img2 = cv2.imread("../resource/5-up.jpg")
     matcher = Matcher(img1, img2, Method.ORB)
     matcher.match(show_match=True)
     sticher = Sticher(img1, img2, matcher)
