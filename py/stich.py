@@ -15,7 +15,6 @@ import cv2
 import numpy as np
 
 
-
 def show_image(image: np.ndarray) -> None:
     from PIL import Image
     Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB)).show()
@@ -148,13 +147,14 @@ class Sticher:
 
         # 移动矩阵
         adjustM = np.array(
-            [[1, 0, max(-left, 0)],
-             [0, 1, max(-top, 0)],
+            [[1, 0, max(-left, 0)],  # 横向
+             [0, 1, max(-top, 0)],  # 纵向
              [0, 0, 1]
              ], dtype=np.float64)
-        # print(adjustM)
+        print('adjustM: ', adjustM)
+        self.M = np.dot(adjustM, self.M)
         transformed_1 = cv2.warpPerspective(
-            self.image1, np.dot(self.M, adjustM), (width, height))
+            self.image1, self.M, (width, height))
         transformed_2 = cv2.warpPerspective(
             self.image2, adjustM, (width, height))
 
@@ -166,8 +166,8 @@ class Sticher:
                 point = tuple(map(int, point))
                 cv2.circle(self.image, point, 10, (20, 20, 255))
             for point in self.image_points2:
-                point = tuple(point)
-                # point = tuple(map(int, point))
+                point = self.get_transformed_position(tuple(point), M=adjustM)
+                point = tuple(map(int, point))
                 cv2.circle(self.image, point, 8, (20, 200, 20))
         if show_result:
             show_image(self.image)
@@ -219,11 +219,15 @@ class Sticher:
 
         return left, right, top, bottom
 
-    def get_transformed_position(self, x: Union[float, Tuple[float, float]], y: float=None) -> Tuple[float, float]:
+    def get_transformed_position(self, x: Union[float, Tuple[float, float]], y: float=None, M=None) -> Tuple[float, float]:
         if isinstance(x, tuple):
             x, y = x
         p = np.array([x, y, 1])[np.newaxis].T
-        pa = np.dot(self.M, p)
+        if M is not None:
+            M = M
+        else:
+            M = self.M
+        pa = np.dot(M, p)
         return pa[0, 0] / pa[2, 0], pa[1, 0] / pa[2, 0]
 
 
@@ -300,7 +304,7 @@ def main():
 if __name__ == "__main__":
     # main()
     os.chdir(os.path.dirname(__file__))
-    
+
     img1 = cv2.imread("../resource/5-down.jpg")
     img2 = cv2.imread("../resource/5-up.jpg")
     matcher = Matcher(img1, img2, Method.ORB)

@@ -52,6 +52,7 @@ def main():
     matcher.match(show_match=True)
     sticher = Sticher(img1, img2, matcher)
     sticher.stich()
+    cv2.imwrite(sys.argv[1] + 'pano.jpg', sticher.image)
     print("M: ", sticher.M)
 
 
