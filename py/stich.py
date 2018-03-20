@@ -75,12 +75,10 @@ class Matcher():
 
     def compute_keypoint(self) -> None:
         """计算特征点
+        利用给出的特征值检测方法对图像进行特征值检测。
 
         Args:
             image (np.ndarray): 图像
-
-        Returns:
-            Tuple[List[cv2.KeyPoint], np.ndarray[np.ndarray]]: 特征点和描述值
         """
         feature = self.method.value(self.threshold)
         self._keypoints1, self._descriptors1 = feature.detectAndCompute(
@@ -89,6 +87,13 @@ class Matcher():
             self.image2, None)
 
     def match(self, max_match_lenth=20, threshold=0.04, show_match=False):
+        """对两幅图片计算得出的特征值进行匹配，对ORB来说使用OpenCV的BFMatcher算法，而对于其他特征检测方法则使用FlannBasedMatcher算法。
+
+            max_match_lenth (int, optional): Defaults to 20. 最大匹配点数量
+            threshold (float, optional): Defaults to 0.04. 默认最大匹配距离差
+            show_match (bool, optional): Defaults to False. 是否展示匹配结果
+        """
+
         self.compute_keypoint()
 
         '''计算两张图片中的配对点，并至多取其中最优的`max_match_lenth`个'''
@@ -236,10 +241,9 @@ class Sticher:
 
         return result
 
-
     def get_transformed_size(self) ->Tuple[int, int, int, int]:
         """计算形变后的边界
-        
+
         Returns:
             Tuple[int, int, int, int]: 分别为左右上下边界
         """
@@ -261,12 +265,12 @@ class Sticher:
 
     def get_transformed_position(self, x: Union[float, Tuple[float, float]], y: float=None, M=None) -> Tuple[float, float]:
         """求得某点在变换矩阵（self.M）下的新坐标
-        
+
         Args:
             x (Union[float, Tuple[float, float]]): x坐标或(x,y)坐标
             y (float, optional): Defaults to None. y坐标，可无
             M (np.ndarry, optional): Defaults to None. 利用M进行坐标变换运算
-        
+
         Returns:
             Tuple[float, float]:  新坐标
         """
