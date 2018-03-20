@@ -43,6 +43,7 @@ class Matcher():
 
     def __init__(self, image1: np.ndarray, image2: np.ndarray, method: Enum=Method.SURF, threshold=800) -> None:
         """输入两幅图像，计算其特征值
+        此类用于输入两幅图像，计算其特征值，输入两幅图像分别为numpy数组格式的图像，其中的method参数要求输入SURF、SIFT或者ORB，threshold参数为特征值检测所需的阈值。
 
         Args:
             image1 (np.ndarray): 图像一
@@ -152,6 +153,7 @@ class Sticher:
 
     def stich(self, show_result=True, show_match_point=True):
         """对图片进行拼合
+
             show_result (bool, optional): Defaults to True. 是否展示拼合图像
             show_match_point (bool, optional): Defaults to True. 是否展示拼合点
         """
@@ -193,14 +195,14 @@ class Sticher:
             show_image(self.image)
 
     def blend(self, image1: np.ndarray, image2: np.ndarray) -> np.ndarray:
-        """对图像进行拼合
+        """对图像进行融合
 
         Args:
-            image1 (np.ndarray): [description]
-            image2 (np.ndarray): [description]
+            image1 (np.ndarray): 图像一
+            image2 (np.ndarray): 图像二
 
         Returns:
-            np.ndarray: [description]
+            np.ndarray: 融合结果
         """
 
         # result = np.zeros(image1.shape, dtype='uint8')
@@ -212,7 +214,7 @@ class Sticher:
 
         return result
 
-    def average(self, image1: np.ndarray, image2: np.ndarray) -> np.ndarry:
+    def average(self, image1: np.ndarray, image2: np.ndarray) -> np.ndarray:
         """平均算法拼合
 
         Args:
@@ -243,6 +245,7 @@ class Sticher:
 
     def get_transformed_size(self) ->Tuple[int, int, int, int]:
         """计算形变后的边界
+        计算形变后的边界，从而对图片进行相应的位移，保证全部图像都出现在屏幕上。
 
         Returns:
             Tuple[int, int, int, int]: 分别为左右上下边界
@@ -269,7 +272,7 @@ class Sticher:
         Args:
             x (Union[float, Tuple[float, float]]): x坐标或(x,y)坐标
             y (float, optional): Defaults to None. y坐标，可无
-            M (np.ndarry, optional): Defaults to None. 利用M进行坐标变换运算
+            M (np.ndarray, optional): Defaults to None. 利用M进行坐标变换运算
 
         Returns:
             Tuple[float, float]:  新坐标
