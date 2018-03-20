@@ -25,12 +25,6 @@ class Method(Enum):
     SURF = cv2.xfeatures2d.SURF_create
     SIFT = cv2.xfeatures2d.SIFT_create
     ORB = cv2.ORB_create
-    # FAST = cv2.FastFeatureDetector_create
-
-    # @classmethod
-    # def __getattribute__(cls, attribute: str):
-    #     if hasattr(cls, attribute):
-    #         return getattr(cls, attribute)
 
 
 class Area:
@@ -46,9 +40,17 @@ class Area:
 
 
 class Matcher():
-    """docstring for Matcher."""
 
     def __init__(self, image1: np.ndarray, image2: np.ndarray, method: Enum=Method.SURF, threshold=800) -> None:
+        """输入两幅图像，计算其特征值
+
+        Args:
+            image1 (np.ndarray): 图像一
+            image2 (np.ndarray): 图像二
+            method (Enum, optional): Defaults to Method.SURF. 特征值检测方法
+            threshold (int, optional): Defaults to 800. 特征值阈值
+
+        """
 
         self.image1 = image1
         self.image2 = image2
@@ -123,9 +125,17 @@ class Matcher():
 
 
 class Sticher:
-    """docstring for Sticher."""
 
     def __init__(self, image1: np.ndarray, image2: np.ndarray, matcher: Matcher):
+        """输入图像和匹配，对图像进行拼接
+        目前采用简单矩阵匹配和平均值拼合
+
+        Args:
+            image1 (np.ndarray): 图像一
+            image2 (np.ndarray): 图像二
+            matcher (Matcher): 匹配结果
+        """
+
         self.image1 = image1
         self.image2 = image2
         self.image_points1 = matcher.image_points1
@@ -136,14 +146,19 @@ class Sticher:
         self.image = None
 
     def stich(self, show_result=True, show_match_point=True):
+        """对图片进行拼合
+            show_result (bool, optional): Defaults to True. 是否展示拼合图像
+            show_match_point (bool, optional): Defaults to True. 是否展示拼合点
+        """
+
         self.M, _ = cv2.findHomography(
             self.image_points1, self.image_points2, cv2.RANSAC)
 
         left, right, top, bottom = self.get_transformed_size()
-        print(self.get_transformed_size())
+        # print(self.get_transformed_size())
         width = int(max(right, self.image2.shape[1]) - min(left, 0))
         height = int(max(bottom, self.image2.shape[0]) - min(top, 0))
-        print(width, height)
+        # print(width, height)
 
         # 移动矩阵
         adjustM = np.array(
@@ -151,7 +166,7 @@ class Sticher:
              [0, 1, max(-top, 0)],  # 纵向
              [0, 0, 1]
              ], dtype=np.float64)
-        print('adjustM: ', adjustM)
+        # print('adjustM: ', adjustM)
         self.M = np.dot(adjustM, self.M)
         transformed_1 = cv2.warpPerspective(
             self.image1, self.M, (width, height))
@@ -173,6 +188,16 @@ class Sticher:
             show_image(self.image)
 
     def blend(self, image1: np.ndarray, image2: np.ndarray) -> np.ndarray:
+        """对图像进行拼合
+
+        Args:
+            image1 (np.ndarray): [description]
+            image2 (np.ndarray): [description]
+
+        Returns:
+            np.ndarray: [description]
+        """
+
         # result = np.zeros(image1.shape, dtype='uint8')
         # result[0:image2.shape[0], 0:self.image2.shape[1]] = self.image2
         # result = np.maximum(transformed, result)
@@ -182,7 +207,17 @@ class Sticher:
 
         return result
 
-    def average(self, image1: np.ndarray, image2: np.ndarray):
+    def average(self, image1: np.ndarray, image2: np.ndarray) -> np.ndarry:
+        """平均算法拼合
+
+        Args:
+            image1 (np.ndarray): 图片一
+            image2 (np.ndarray): 图片二
+
+        Returns:
+            np.ndarray: 拼合后图像
+        """
+
         assert(image1.shape == image2.shape)
         result = np.zeros(image1.shape, dtype='uint8')
 
@@ -191,19 +226,24 @@ class Sticher:
             np.all(np.not_equal(image1, [0, 0, 0]), axis=2),
             np.all(np.not_equal(image2, [0, 0, 0]), axis=2),
         )
+        # 重叠处用平均值
         result[overlap] = np.average(
             np.array([image1[overlap], image2[overlap]]), axis=0) .astype(np.uint8)
-
+        # 非重叠处采选最大值
         not_overlap = np.logical_not(overlap)
         result[not_overlap] = np.maximum(
             image1[not_overlap], image2[not_overlap])
 
         return result
-        # for i in range(image1.shape[0]):
-        #     for j in range(image1.shape[1]):
-        #         if
 
-    def get_transformed_size(self):
+
+    def get_transformed_size(self) ->Tuple[int, int, int, int]:
+        """计算形变后的边界
+        
+        Returns:
+            Tuple[int, int, int, int]: 分别为左右上下边界
+        """
+
         conner_0 = (0, 0)  # x, y
         conner_1 = (self.image1.shape[1], 0)
         conner_2 = (self.image1.shape[1], self.image1.shape[0])
@@ -220,6 +260,17 @@ class Sticher:
         return left, right, top, bottom
 
     def get_transformed_position(self, x: Union[float, Tuple[float, float]], y: float=None, M=None) -> Tuple[float, float]:
+        """求得某点在变换矩阵（self.M）下的新坐标
+        
+        Args:
+            x (Union[float, Tuple[float, float]]): x坐标或(x,y)坐标
+            y (float, optional): Defaults to None. y坐标，可无
+            M (np.ndarry, optional): Defaults to None. 利用M进行坐标变换运算
+        
+        Returns:
+            Tuple[float, float]:  新坐标
+        """
+
         if isinstance(x, tuple):
             x, y = x
         p = np.array([x, y, 1])[np.newaxis].T
