@@ -360,13 +360,17 @@ def main():
 
 
 if __name__ == "__main__":
+    import time
     # main()
     os.chdir(os.path.dirname(__file__))
 
-    img1 = cv2.imread("../resource/5-down.jpg")
-    img2 = cv2.imread("../resource/5-up.jpg")
+    start_time = time.time()
+    img1 = cv2.imread("../resource/3-left.jpg")
+    img2 = cv2.imread("../resource/3-right.jpg")
     matcher = Matcher(img1, img2, Method.ORB)
     matcher.match(show_match=True)
     sticher = Sticher(img1, img2, matcher)
     sticher.stich()
+    cv2.imwrite('../resource/3-orb.jpg', sticher.image)
+    print("Time: ", time.time() - start_time)
     print("M: ", sticher.M)
