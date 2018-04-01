@@ -281,7 +281,7 @@ computeOrbDescriptors( const Mat& imagePyramid, const std::vector<Rect>& layerIn
 
 运行后的数据：
 
-![1522583392970](img/1522583392970.png)
+![runtime](img/runtime.png)
 
 部分关键点及其数据:
 
@@ -289,7 +289,7 @@ computeOrbDescriptors( const Mat& imagePyramid, const std::vector<Rect>& layerIn
 
 对应的描述子：
 
-![1522583860543](img/1522583860543.png)
+![descriptor](img/descriptor.png)
 
 
 
