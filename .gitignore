@@ -1,3 +1,4 @@
+*.pdf
 .history/
 .vscode/
 resource/
