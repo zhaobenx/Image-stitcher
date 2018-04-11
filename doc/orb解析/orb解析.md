@@ -72,6 +72,7 @@ S_{\theta} = R_{\theta}S
 $$
 
 其中的$S$为选取的点对（$x_n$与$y_n$是一个点对两个点的灰度值），$R_{\theta}$为旋转不变性（公式（4））求得的旋转角度。
+
 $$
 S =\begin{pmatrix}x_1&x_2&\cdots&x_{2n} \\ y_1&y_2&\cdots&y_{2n}\end{pmatrix}
 $$
@@ -176,6 +177,7 @@ HarrisResponses(const Mat& img, const std::vector<Rect>& layerinfo,
 ```
 
 代码最后几行即为计算我们公式(1)的具体计算，其中用到了这样的公式,即在矩阵$\boldsymbol{M}=\begin{bmatrix}A&C\\C&B\end{bmatrix}$中：
+
 $$
 det\boldsymbol{M} = \lambda_1\lambda_2=AB-C^2
 $$
@@ -293,4 +295,4 @@ computeOrbDescriptors( const Mat& imagePyramid, const std::vector<Rect>& layerIn
 
 
 
-（三十二个为一个描述子，图中并未截全一个描述子）
+（三十二个为一个描述子，图中并未截全一个描述子）s

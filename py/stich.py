@@ -14,6 +14,8 @@ import os
 import cv2
 import numpy as np
 
+import k_means
+
 
 def show_image(image: np.ndarray) -> None:
     from PIL import Image
@@ -102,6 +104,8 @@ class Matcher():
             self._descriptors1, self._descriptors2), key=lambda x: x.distance)
 
         match_len = min(len(self.match_points), max_match_lenth)
+        if self.method == Method.ORB:
+            threshold = 20
         min_distance = max(2 * self.match_points[0].distance, threshold)
 
         for i in range(match_len):
@@ -130,9 +134,20 @@ class Matcher():
         # print(image_points1)
 
 
+def get_weighted_points(image_points: np.ndarray):
+
+    # print(k_means.k_means(image_points))
+    # exit(0)
+
+    average = np.average(image_points, axis=0)
+
+    max_index = np.argmax(np.linalg.norm((image_points - average), axis=1))
+    return np.append(image_points, np.array([image_points[max_index]]), axis=0)
+
+
 class Sticher:
 
-    def __init__(self, image1: np.ndarray, image2: np.ndarray, matcher: Matcher):
+    def __init__(self, image1: np.ndarray, image2: np.ndarray, matcher: Matcher, use_kmeans=False):
         """输入图像和匹配，对图像进行拼接
         目前采用简单矩阵匹配和平均值拼合
 
@@ -140,12 +155,17 @@ class Sticher:
             image1 (np.ndarray): 图像一
             image2 (np.ndarray): 图像二
             matcher (Matcher): 匹配结果
+            use_kmeans (bool): 是否使用kmeans 优化点选择
         """
 
         self.image1 = image1
         self.image2 = image2
-        self.image_points1 = matcher.image_points1
-        self.image_points2 = matcher.image_points2
+        if use_kmeans:
+            self.image_points1, self.image_points2 = k_means.get_group_center(
+                matcher.image_points1, matcher.image_points2)
+        else:
+            self.image_points1, self.image_points2 = (
+                matcher.image_points1, matcher.image_points2)
 
         self.M = np.eye(3)
 
@@ -165,7 +185,8 @@ class Sticher:
         # print(self.get_transformed_size())
         width = int(max(right, self.image2.shape[1]) - min(left, 0))
         height = int(max(bottom, self.image2.shape[0]) - min(top, 0))
-        # print(width, height)
+        print(width, height)
+        width, height = min(width, 10000), min(height, 10000)
 
         # 移动矩阵
         adjustM = np.array(
@@ -186,11 +207,11 @@ class Sticher:
             for point in self.image_points1:
                 point = self.get_transformed_position(tuple(point))
                 point = tuple(map(int, point))
-                cv2.circle(self.image, point, 10, (20, 20, 255))
+                cv2.circle(self.image, point, 10, (20, 20, 255), 5)
             for point in self.image_points2:
                 point = self.get_transformed_position(tuple(point), M=adjustM)
                 point = tuple(map(int, point))
-                cv2.circle(self.image, point, 8, (20, 200, 20))
+                cv2.circle(self.image, point, 8, (20, 200, 20), 5)
         if show_result:
             show_image(self.image)
 
@@ -209,7 +230,7 @@ class Sticher:
         # result[0:image2.shape[0], 0:self.image2.shape[1]] = self.image2
         # result = np.maximum(transformed, result)
 
-        # result = cv2.addWeighted(transformed, 0.5, result, 0.5, 1)
+        # result = cv2.addWeighted(image1, 0.5, image2, 0.5, 1)
         result = self.average(image1, image2)
 
         return result
@@ -235,7 +256,8 @@ class Sticher:
         )
         # 重叠处用平均值
         result[overlap] = np.average(
-            np.array([image1[overlap], image2[overlap]]), axis=0) .astype(np.uint8)
+            np.array([image1[overlap], image2[overlap]]), axis=0
+        ) .astype(np.uint8)
         # 非重叠处采选最大值
         not_overlap = np.logical_not(overlap)
         result[not_overlap] = np.maximum(
@@ -365,12 +387,14 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(__file__))
 
     start_time = time.time()
-    img1 = cv2.imread("../resource/3-left.jpg")
-    img2 = cv2.imread("../resource/3-right.jpg")
+    img2 = cv2.imread("../resource/15-left.jpg")
+    img1 = cv2.imread("../resource/15-right.jpg")
     matcher = Matcher(img1, img2, Method.ORB)
-    matcher.match(show_match=True)
-    sticher = Sticher(img1, img2, matcher)
+    matcher.match(max_match_lenth=20, show_match=True,)
+    sticher = Sticher(img1, img2, matcher, False)
     sticher.stich()
-    cv2.imwrite('../resource/3-orb.jpg', sticher.image)
+    
+    # cv2.imwrite('../resource/15-orb.jpg', sticher.image)
+    
     print("Time: ", time.time() - start_time)
     print("M: ", sticher.M)
