@@ -30,9 +30,7 @@ def main():
 
             img2 = cv2.imread(file2)
             img1 = cv2.imread(f)
-            matcher = Matcher(img1, img2, method=method)
-            matcher.match(max_match_lenth=20, show_match=False,)
-            sticher = Sticher(img1, img2, matcher)
+            sticher = Sticher(img1, img2, method=method)
             sticher.stich(show_result=False)
             cv2.imwrite(name, sticher.image)
             print("Time: ", time.time() - start_time)
