@@ -8,7 +8,7 @@ import glob
 import os
 
 import cv2
-from stich import Matcher, Sticher, Method
+from stich import Sticher, Method
 
 
 def main():
@@ -16,7 +16,7 @@ def main():
     # main()
     os.chdir(os.path.dirname(__file__))
 
-    number = 9
+    number = 17
     file1 = "../resource/{}-right*.jpg".format(number)
     file2 = "../resource/{}-left.jpg".format(number)
 
