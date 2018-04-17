@@ -61,9 +61,9 @@ class Matcher():
         self.threshold = threshold
 
         self._keypoints1: List[cv2.KeyPoint] = None
-        self._descriptors1: np.ndraary = None
+        self._descriptors1: np.ndarray = None
         self._keypoints2: List[cv2.KeyPoint] = None
-        self._descriptors2: np.ndraary = None
+        self._descriptors2: np.ndarray = None
 
         if self.method == Method.ORB:
             # error if not set this
@@ -112,7 +112,7 @@ class Matcher():
         # max_distance = max(2 * self.match_points[0].distance, threshold)
 
         # in case distance is 0
-        max_distance = max(2 * self.match_points[0].distance, 2)
+        max_distance = max(2 * self.match_points[0].distance, 20)
 
         for i in range(match_len):
             if self.match_points[i].distance > max_distance:
@@ -352,13 +352,13 @@ class Sticher:
 #
                     # cv2.circle(part, tuple(map(int, relevtive_point(point))),
                     #            40, (255, 0, 0), 10)
-                    show_image(part)
+                    # show_image(part)
 
                     part = cv2.warpPerspective(
                         part, partial_M, (part.shape[1], part.shape[0]))
                     cv2.circle(part, tuple(map(int, relevtive_point(other_point))),
                                40, (20, 97, 199), 6)
-                    show_image(part)
+                    # show_image(part)
                     self.image1[boder_0:boder_1, boder_2:boder_3] = part
                     return
 
@@ -534,14 +534,14 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(__file__))
 
     start_time = time.time()
-    img2 = cv2.imread("../resource/13-left.jpg")
-    img1 = cv2.imread("../resource/13-right.jpg")
+    img2 = cv2.imread("../resource/19-left.jpg")
+    img1 = cv2.imread("../resource/19-right.jpg")
     # matcher = Matcher(img1, img2, Method.ORB)
     # matcher.match(max_match_lenth=20, show_match=True,)
     sticher = Sticher(img1, img2, Method.ORB, False)
     sticher.stich(use_partial=True)
 
-    cv2.imwrite('../resource/13-partial.jpg', sticher.image)
+    cv2.imwrite('../resource/19-orb.jpg', sticher.image)
 
     print("Time: ", time.time() - start_time)
     print("M: ", sticher.M)
