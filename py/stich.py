@@ -9,7 +9,7 @@ from enum import Enum
 from typing import List, Tuple, Union
 import unittest
 import os
-
+import random
 
 import cv2
 import numpy as np
@@ -27,6 +27,10 @@ class Method(Enum):
     SURF = cv2.xfeatures2d.SURF_create
     SIFT = cv2.xfeatures2d.SIFT_create
     ORB = cv2.ORB_create
+
+
+colors = ((123, 234, 12), (23, 44, 240), (224, 120, 34), (21, 234, 190),
+          (80, 160, 200), (243, 12, 100), (25, 90, 12), (123, 10, 140))
 
 
 class Area:
@@ -173,13 +177,14 @@ class Sticher:
 
         self.image = None
 
-    def stich(self, show_result=True, show_match_point=True, use_partial=False):
+    def stich(self, show_result=True, max_match_lenth=40, show_match_point=True, use_partial=False):
         """对图片进行拼合
 
             show_result (bool, optional): Defaults to True. 是否展示拼合图像
             show_match_point (bool, optional): Defaults to True. 是否展示拼合点
         """
-        self.matcher.match(max_match_lenth=40, show_match=show_match_point)
+        self.matcher.match(max_match_lenth=max_match_lenth,
+                           show_match=show_match_point)
 
         if self.use_kmeans:
             self.image_points1, self.image_points2 = k_means.get_group_center(
@@ -216,14 +221,15 @@ class Sticher:
         self.image = self.blend(transformed_1, transformed_2)
 
         if show_match_point:
-            for point in self.image_points1:
-                point = self.get_transformed_position(tuple(point))
-                point = tuple(map(int, point))
-                cv2.circle(self.image, point, 10, (20, 20, 255), 5)
-            for point in self.image_points2:
-                point = self.get_transformed_position(tuple(point), M=adjustM)
-                point = tuple(map(int, point))
-                cv2.circle(self.image, point, 8, (20, 200, 20), 5)
+            for point1, point2 in zip(self.image_points1, self.image_points2):
+                point1 = self.get_transformed_position(tuple(point1))
+                point1 = tuple(map(int, point1))
+                point2 = self.get_transformed_position(tuple(point2), M=adjustM)
+                point2 = tuple(map(int, point2))
+
+                cv2.line(self.image, point1, point2, random.choice(colors), 3)
+                cv2.circle(self.image, point1, 10, (20, 20, 255), 5)
+                cv2.circle(self.image, point2, 8, (20, 200, 20), 5)
         if show_result:
             show_image(self.image)
 
@@ -539,9 +545,9 @@ if __name__ == "__main__":
     # matcher = Matcher(img1, img2, Method.ORB)
     # matcher.match(max_match_lenth=20, show_match=True,)
     sticher = Sticher(img1, img2, Method.ORB, False)
-    sticher.stich(use_partial=True)
+    sticher.stich(max_match_lenth=15, use_partial=False)
 
-    cv2.imwrite('../resource/19-orb.jpg', sticher.image)
+    cv2.imwrite('../resource/19-orb-15.jpg', sticher.image)
 
     print("Time: ", time.time() - start_time)
     print("M: ", sticher.M)
