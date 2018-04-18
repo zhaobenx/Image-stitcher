@@ -13,6 +13,7 @@
 | 左图 | 右图 | 结果 |
 | :--: | :--: | :--: |
 |   ![3-left](example/3-left.JPG)   |  ![3-right](example/3-right.JPG)    |   ![3-surf](example/3-surf.jpg)   |
+| ![19-left](example/19-left.JPG) | ![19-right](example/19-right.JPG) | ![19-SIFT](example/19-SIFT.JPG) |
 
 ### 2018年4月1日：
 
