@@ -545,9 +545,9 @@ if __name__ == "__main__":
     # matcher = Matcher(img1, img2, Method.ORB)
     # matcher.match(max_match_lenth=20, show_match=True,)
     sticher = Sticher(img1, img2, Method.ORB, False)
-    sticher.stich(max_match_lenth=15, use_partial=False)
+    sticher.stich(max_match_lenth=17, use_partial=False)
 
-    cv2.imwrite('../resource/19-orb-15.jpg', sticher.image)
+    # cv2.imwrite('../resource/19-orb-17.jpg', sticher.image)
 
     print("Time: ", time.time() - start_time)
     print("M: ", sticher.M)
