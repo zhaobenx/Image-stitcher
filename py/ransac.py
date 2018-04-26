@@ -47,14 +47,14 @@ class Ransac:
         if self.points_length - np.count_nonzero(self.mask) < 4:
             return False
 
-        try_times = 0
         rand_point = random.sample(range(self.points_length), 4)
-        while np.any(self.mask[rand_point]):
-            try_times += 1
-            rand_point = random.sample(range(self.points_length), 4)
-            if try_times > max_try_times:
-                return False
-        self.mask[rand_point] = True
+        # try_times = 0
+        # while np.any(self.mask[rand_point]):
+        #     try_times += 1
+        #     rand_point = random.sample(range(self.points_length), 4)
+        #     if try_times > max_try_times:
+        #         return False
+        # self.mask[rand_point] = True
         M = self.get_perspective_transform(self.data1[rand_point], self.data2[rand_point])
         return M
 
@@ -109,7 +109,7 @@ class Ransac:
 
     # TODO: get a better threshold or dynamic change it
     @classmethod
-    def get_good_points(cls, points1: np.ndarray, points2: np.ndarray, M: np.ndarray, threshold=3)-> np.ndarray:
+    def get_good_points(cls, points1: np.ndarray, points2: np.ndarray, M: np.ndarray, threshold=3)-> int:
         """求得在给定变换矩阵下，计算将points1变换后与points2之间的距离
 
         Args:
@@ -119,13 +119,13 @@ class Ransac:
             threshold (int, optional): Defaults to 3. 距离阈值
 
         Returns:
-            np.ndarray: Bool数组，是否是优秀点
+            int: 优秀点个数
         """
 
         transformed = cls.perspective_transform(points1, M)
         dis = np.sum((transformed - points2) * (transformed - points2), axis=1)
         good = dis < threshold * threshold
-        return good
+        return np.sum(good)
 
     @staticmethod
     def get_itereration_time(proportion: float, p=0.995, points=4)->int:
@@ -146,7 +146,7 @@ class Ransac:
         k = np.log(1 - p) / np.log(1 - np.power(proportion, 4))
         return int(k)
 
-    def run(self)->np.ndarray:
+    def run(self, distance=3)->np.ndarray:
         """进行计算
 
         Returns:
@@ -155,10 +155,12 @@ class Ransac:
 
         iter_times = 0
         best_M = None
+        # random.seed(1)
         while iter_times < self.max_iter_times:
             M = self.random_calculate()
-            good = self.get_good_points(self.data1, self.data2, M)
-            good_nums = np.sum(good)
+            if M is False:
+                return best_M
+            good_nums = self.get_good_points(self.data1, self.data2, M, distance)
             if good_nums > self.good_points:
                 self.good_points = good_nums
                 best_M = M
