@@ -1,3 +1,5 @@
+/docs
+
 *.pdf
 .history/
 .vscode/
@@ -107,3 +109,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+*.bak

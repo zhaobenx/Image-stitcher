@@ -15,6 +15,7 @@ import cv2
 import numpy as np
 
 import k_means
+from ransac import Ransac, GeneticRansac
 
 
 def show_image(image: np.ndarray) -> None:
@@ -123,6 +124,7 @@ class Matcher():
                 match_len = i
                 break
         print('max distance: ', self.match_points[match_len].distance)
+        print("Min distance: ", self.match_points[0].distance)
         print('match_len: ', match_len)
         assert(match_len >= 4)
         self.match_points = self.match_points[:match_len]
@@ -195,6 +197,12 @@ class Sticher:
 
         self.M, _ = cv2.findHomography(
             self.image_points1, self.image_points2, cv2.RANSAC)
+
+        ransac = GeneticRansac(self.image_points1, self.image_points2)
+        self.M = ransac.run()
+        print("RANSAC Iteration times: ", ransac.max_iter_times)
+        print("RANSAC Good Points: ", ransac.good_points)
+        print("RANSAC Totall Points: ", ransac.points_length)
 
         left, right, top, bottom = self.get_transformed_size()
         # print(self.get_transformed_size())
@@ -297,9 +305,7 @@ class Sticher:
 
         # cv2.circle(self.image1, tuple(map(int, (y_mid, x_mid))),
         #            25, (255, 100, 60), 7)
-
         # end debug
-
         if len(min_part) < len(self.image_points1) / 8:
             for index in min_part:
                 point = self.image_points1[index].tolist()
@@ -383,8 +389,8 @@ class Sticher:
         # result[0:image2.shape[0], 0:self.image2.shape[1]] = self.image2
         # result = np.maximum(transformed, result)
 
-        # result = cv2.addWeighted(image1, 0.5, image2, 0.5, 1)
-        result = self.average(image1, image2)
+        result = cv2.addWeighted(image1, 0.5, image2, 0.5, 1)
+        # result = self.average(image1, image2)
 
         return result
 
@@ -545,7 +551,7 @@ if __name__ == "__main__":
     # matcher = Matcher(img1, img2, Method.ORB)
     # matcher.match(max_match_lenth=20, show_match=True,)
     sticher = Sticher(img1, img2, Method.ORB, False)
-    sticher.stich(max_match_lenth=17, use_partial=False)
+    sticher.stich(max_match_lenth=40, use_partial=False)
 
     # cv2.imwrite('../resource/19-orb-17.jpg', sticher.image)
 
