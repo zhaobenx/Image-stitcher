@@ -144,6 +144,8 @@ class Ransac:
         Returns:
             int: 更新后的所需迭代次数
         """
+        if proportion > 1 - 1e6:
+            return 0
 
         proportion = max(min(proportion, 1), 0)
         p = max(min(p, 1), 0)
@@ -180,6 +182,12 @@ class GeneticRansac(Ransac):
 
     class Individual:
         def __init__(self, dna, value=0):
+            """个体
+
+            Args:
+                dna : 变换矩阵
+                value (int, optional): Defaults to 0. 最佳值
+            """
             self.dna = dna
             self.value = value
 
@@ -192,71 +200,81 @@ class GeneticRansac(Ransac):
         __str__ = __repr__
 
     SAMPLE = 30
-    MUTATION_RATE = 0.1
+    MUTATION_RATE = 0.3
+    MUTATION_COUNT = 4
 
     def __init__(self, data1: np.ndarray, data2: np.ndarray):
         super().__init__(data1, data2)
         if self.points_length > 7:
             self.population = []
             for i in range(self.SAMPLE):
-                indv = self.Individual(np.random.choice(range(self.points_length), 4, replace=0))
+                indv = self.random_new_individual()
                 self.population.append(indv)
+
+    def random_new_individual(self):
+        index = np.random.choice(range(self.points_length), 4, replace=0)
+        indv = self.Individual(self.calculate_M(index))
+        indv.value = self.calculate_value(indv.dna)
+        return indv
+
+    def calculate_M(self, index: np.ndarray):
+        return self.get_perspective_transform(self.data1[index], self.data2[index])
+
+    def calculate_value(self, M):
+        if M is not False:
+            return self.get_good_points(self.data1, self.data2, M)
+        else:
+            return 0
 
     def run(self):
         # 总数过小
         if self.points_length < 7:
             return super().run()
 
-        for i in range(40):
-            # 计算总距离
-            for i in self.population:
-                M = self.get_perspective_transform(self.data1[i.dna], self.data2[i.dna])
-                # 共线或其他失败情况
-                if M is not False:
-                    good = self.get_good_points(self.data1, self.data2, M)
-                    i.value = good
-                else:
-                    i.value = 0
-            self.population = sorted(self.population, reverse=True)
+        for i in range(20):
+
+            print("The {} generation:".format(i), [i.value for i in self.population])
 
             # 去除一半
-            all_value = sum([x.value for x in self.population])
-            prop = [x.value / all_value for x in self.population]
-            # TODO: 实现轮盘选择
             # self.population = self.population[:self.SAMPLE // 2]
+            # TODO: 实现轮盘选择
+            all_value = sum([x.value*x.value for x in self.population])
+            prop = [x.value*x.value / all_value for x in self.population]
             self.population = np.random.choice(self.population, size=self.SAMPLE // 2, replace=False, p=prop)
+            print("The {} generation after selection: ".format(i), [i.value for i in self.population])
 
             children = []
             # 交叉
-            while len(children) + len(self.population) <= self.SAMPLE:
+            while len(children) + len(self.population) < self.SAMPLE:
                 mother = random.choice(self.population)
                 father = random.choice(self.population)
-                corss_index = random.choices(range(4), k=2)
-                child = deepcopy(mother)
-                child.dna[corss_index] = father.dna[corss_index]
+                # # 交换染色体
+                # corss_index = random.choices(range(8), k=4)
+                # child = deepcopy(mother)
+                # child.dna.put([corss_index], father.dna.take([corss_index]))
+                #平均染色体
+                child = self.Individual((mother.dna + father.dna)/2)
+
                 # 变异
                 if random.random() < self.MUTATION_RATE:
-                    rand_index = random.choice(range(4))
-                    rand_point = random.choice(range(self.points_length))
-                    while child.dna[rand_index] == rand_point:
-                        rand_point = random.choice(range(self.points_length))
-                    child.dna[rand_index] = rand_point
-
+                    rand_index = np.random.choice(range(8), self.MUTATION_COUNT, replace=0)
+                    # 利用卡方分布变异
+                    gene = child.dna.take(rand_index)
+                    gene *= np.random.chisquare(10, rand_index.size)
+                    child.dna.put(rand_index, gene)
+                child.value = self.calculate_value(child.dna)
                 children.append(child)
 
+            # 增加一个全新变异物种
+            children.append(self.random_new_individual())
+
             self.population = np.concatenate((self.population, children))
+            print("The {} generation after propagate:".format(i), [i.value for i in self.population])
 
-        # 获取最优或次优点
-        M = self.get_perspective_transform(self.data1[self.population[0].dna], self.data2[self.population[0].dna])
-
-        i = 1
-        while M is False:
-            M = self.get_perspective_transform(self.data1[self.population[i].dna], self.data2[self.population[i].dna])
-            i += 1
-            if i > self.SAMPLE:
-                raise Exception("GA error!!")
-        self.good_points = self.get_good_points(self.data1, self.data2, M)
-        return M
+        # 获取最优
+        self.population = sorted(self.population, reverse=True)
+        self.good_points = self.population[0].value
+        return self.population[0].dna
 
 
 def main():
@@ -285,13 +303,19 @@ def test():
     print(result_M)
     print("Max itereration times")
     print(ransac.max_iter_times)
+    print("#====== Test for genetic algorithm =====#")
     # Test for GA
+    print("M(should be the same) : ")
+    gr = GeneticRansac(data_point1, data_point2)
+    print(gr.run())
     data1 = np.array([[520.12805, 243.64803], [4679.038, 627.0568], [508.80002, 277.2], [259.78067, 403.10794], [661.2, 199.20001], [695.13727, 232.90681], [831.51373, 134.78401], [512.395, 243.65637], [329.65274, 756.0514], [502., 292.], [523.2, 244.8], [522.72003, 244.8], [1870.3875, 1967.8467], [5208.884, 904.0897], [
                      661., 199.], [1872.2125, 1967.764], [1003.2909, 240.07318], [316., 736.], [612., 170.40001], [520.4737, 244.68483], [534.98895, 199.06564], [523., 245.], [582., 220.], [5072., 756.], [391.68002, 116.64001], [4572.2886, 1094.861], [1871.217, 1968.2616], [1003.2909, 238.87878]], dtype=np.float32)
     data2 = np.array([[1080.0001, 221.18402], [5297.137, 400.12195], [1069.2001, 253.20001], [845.0337, 394.15], [1218., 168.], [1250.5305, 200.65819], [1374.797, 93.31201], [1074.9546, 222.15727], [910.1282, 730.9691], [1093., 177.], [1082., 221.], [1081.4401, 220.32], [2401.2292, 1874.5347], [
                      708., 389.], [1218., 168.], [2403.7178, 1875.1985], [1540.7682, 186.32545], [901., 711.], [1153., 261.], [1078.2721, 221.87523], [1094.8611, 176.67076], [847., 44.], [1426., 175.], [1244.4, 326.40002], [823., 32.], [5173.633, 906.1633], [2401.2292, 1873.7054], [1540.7682, 185.13106]], dtype=np.float32)
+
     gr = GeneticRansac(data1, data2)
     print(gr.run())
+    # print(gr.population)
 
 
 if __name__ == "__main__":
