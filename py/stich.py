@@ -15,7 +15,7 @@ import cv2
 import numpy as np
 
 import k_means
-from ransac import Ransac, GeneticRansac
+from ransac import *
 
 
 def show_image(image: np.ndarray) -> None:
@@ -198,11 +198,11 @@ class Sticher:
         self.M, _ = cv2.findHomography(
             self.image_points1, self.image_points2, cv2.RANSAC)
 
-        ransac = GeneticRansac(self.image_points1, self.image_points2)
+        ransac = NewGeneticRansac(self.image_points1, self.image_points2)
         self.M = ransac.run()
-        print("RANSAC Iteration times: ", ransac.max_iter_times)
+        # print("RANSAC Iteration times: ", ransac.max_iter_times)
         print("RANSAC Good Points: ", ransac.good_points)
-        print("RANSAC Totall Points: ", ransac.points_length)
+        # print("RANSAC Totall Points: ", ransac.points_length)
 
         left, right, top, bottom = self.get_transformed_size()
         # print(self.get_transformed_size())

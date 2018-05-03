@@ -10,6 +10,8 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
+__all__ = ['Ransac', 'PositionRansac', 'GeneticRansac', 'NewGeneticRansac']
+
 
 class Ransac:
 
@@ -88,7 +90,7 @@ class Ransac:
         try:
             X = linalg.solve(A, B).copy()
         except Exception as e:
-            print("Error when calcuating M: ", e)
+            # print("Error when calcuating M: ", e)
             return False
         else:
             X.resize((3, 3), refcheck=False)
@@ -176,6 +178,88 @@ class Ransac:
         return best_M
 
 
+class PositionRansac(Ransac):
+
+    def __init__(self, data1: np.ndarray, data2: np.ndarray):
+        """基于点位置加权的RANSAC算法，使得在小相差下对齐更均衡。
+
+         Args:
+            data1 (np.ndarray): n*2形状的点数组
+            data2 (np.ndarray): n*2形状的点数组
+            max_iter_times (int, optional): Defaults to 1000. 最大迭代次数
+
+        Raises:
+            ValueError: 输入数组形状不同
+        """
+        raise NotImplementedError
+        super().__init__(data1, data2)
+
+    def random_calculate(self, index=None)-> np.ndarray:
+        """随机取四个点对，计算其变换矩阵
+            index (int, optional): Defaults to None. 是否包含某索引的点
+
+        Returns:
+            np.ndarray: 变换矩阵M
+        """
+        if index is not None:
+            rand_point = random.sample(range(self.points_length), 3)
+            while index in rand_point:
+                rand_point = random.sample(range(self.points_length), 3)
+            rand_point.append(index)
+        else:
+            rand_point = random.sample(range(self.points_length), 4)
+
+        M = self.get_perspective_transform(self.data1[rand_point], self.data2[rand_point])
+        return M
+
+    def run_ransac(self, index=None) -> np.ndarray:
+        """进行计算
+
+        Returns:
+            计算的透视变换矩阵
+        """
+        max_iter_times = self.max_iter_times
+        iter_times = 0
+        best_M = None
+        # random.seed(1)
+        while iter_times < max_iter_times:
+            M = self.random_calculate(index)
+            if M is False:
+                return best_M
+            good_nums = self.get_good_points(self.data1, self.data2, M)
+            if good_nums > self.good_points:
+                self.good_points = good_nums
+                best_M = M
+                max_iter_times = min(max_iter_times,
+                                     self.get_itereration_time(good_nums / self.points_length))
+            iter_times += 1
+
+        return best_M
+
+    def get_farthest_point(self, M: np.ndarray) -> int:
+        """获取在M变换矩阵下变换距离最远的点
+
+        Args:
+            M (np.ndarray): 变换矩阵
+
+        Returns:
+            int: 最远点的索引
+        """
+        transformed = self.perspective_transform(self.data1, M)
+        dis = np.sum((transformed - self.data2) * (transformed - self.data2), axis=1)
+        farthest = np.argmax(dis)
+        return farthest
+
+    def run(self) -> np.ndarray:
+
+        # tmp_M = self.run_ransac()
+        # farthest = self.get_farthest_point(tmp_M)
+        # TODO: 距离尝试
+        # TODO: 利用 k-means算法初步筛选出最远点，然后在保证在点数相同时选择最优点
+
+        return
+
+
 class GeneticRansac(Ransac):
 
     class Individual:
@@ -259,12 +343,104 @@ class GeneticRansac(Ransac):
         return M
 
 
+class NewGeneticRansac(Ransac):
+
+    class Individual:
+        def __init__(self, dna: np.ndarray, value=0):
+            self.dna = dna
+            self.value = value
+
+        def __lt__(self, other: 'Individual'):
+            return self.value < other.value
+
+        def __repr__(self):
+            return "dna: <{}>, value: {}".format(self.dna, self.value)
+
+        __str__ = __repr__
+
+    SAMPLE = 30
+    GENERATION = 20
+    MUTATION_RATE = 0.1
+    MUTATION_COUNT = 1
+
+    def __init__(self, data1: np.ndarray, data2: np.ndarray):
+        """在ransac的基础上利用遗传算法优化点选
+
+        Args:
+            data1 (np.ndarray): 位置点1
+            data2 (np.ndarray): 位置点2
+        """
+        self.data1 = data1
+        self.data2 = data2
+        if(self.data1.shape != self.data2.shape):
+            raise ValueError("Argument shape not equal")
+
+        self.points_length = self.data1.shape[0]
+
+        self.population = []
+        for i in range(self.SAMPLE):
+            ransac = Ransac(data1, data2)
+            M = ransac.run()
+            indv = self.Individual(M, ransac.good_points)
+            self.population.append(indv)
+
+    def run(self):
+
+        for i in range(self.GENERATION):
+
+            self.population = sorted(self.population, reverse=True)
+
+            # 去除一半
+            self.population = self.population[:self.SAMPLE // 2]
+            # TODO: 实现轮盘选择
+            # prop = [x.value / all_value for x in self.population]
+            # all_value = sum([x.value for x in self.population])
+            # self.population = np.random.choice(self.population, size=self.SAMPLE // 2, replace=False, p=prop)
+            print("The {} generation after selection: ".format(i), [i.value for i in self.population])
+
+            children = []
+            # 交叉
+            while len(children) + len(self.population) <= self.SAMPLE:
+                mother = random.choice(self.population)
+                father = random.choice(self.population)
+                # # 交换染色体
+                # corss_index = random.choices(range(8), k=4)
+                # child = deepcopy(mother)
+                # child.dna.put([corss_index], father.dna.take([corss_index]))
+                # 平均染色体
+                child = self.Individual((mother.dna + father.dna) / 2)
+
+                # 变异
+                if random.random() < self.MUTATION_RATE:
+                    rand_index = np.random.choice(range(8), self.MUTATION_COUNT, replace=0)
+                    # 利用卡方分布变异
+                    gene = child.dna.take(rand_index)
+                    gene *= np.random.chisquare(10, rand_index.size)
+                    child.dna.put(rand_index, gene)
+                child.value = self.get_good_points(self.data1, self.data2, child.dna)
+                children.append(child)
+
+            self.population = np.concatenate((self.population, children))
+            print("The {} generation after propagate:".format(i), [i.value for i in self.population])
+        # end loop for reproduction
+
+        # 获取最优点
+        self.population = sorted(self.population, reverse=True)
+        if self.population[0].value > 0:
+            self.good_points = self.population[0].value
+            return self.population[0].dna
+        else:
+            raise RuntimeError("Cannot get transfrom matrix")
+
+
 def main():
     pass
     test()
 
 
 def test():
+    import time
+
     data_point1 = np.array([[1, 2], [3, 3], [5, 5], [6, 8]])
     data_point2 = np.array([[4, 2], [5, 3], [12, 5], [64, 8]])
     ransac = Ransac(data_point1, data_point2)
@@ -276,21 +452,40 @@ def test():
           "[-0.10388994, -0.03462998,  1.        ]]")
     print(ransac.get_good_points(data_point1, data_point1, M))
 
-    test_data = np.random.rand(20, 2) * 30
+    test_data = np.random.rand(40, 2) * 100
     dst_data = Ransac.perspective_transform(test_data, M)
-    dst_data[0] = [21312, 213123]
+    dst_data[:10, :] = np.random.rand(10, 2)
+    start = time.time()
     ransac = Ransac(test_data, dst_data)
     result_M = ransac.run()
+    print("Spent time: ", time.time() - start)
     print("Result M:")
     print(result_M)
     print("Max itereration times")
     print(ransac.max_iter_times)
+
     # Test for GA
-    data1 = np.array([[520.12805, 243.64803], [4679.038, 627.0568], [508.80002, 277.2], [259.78067, 403.10794], [661.2, 199.20001], [695.13727, 232.90681], [831.51373, 134.78401], [512.395, 243.65637], [329.65274, 756.0514], [502., 292.], [523.2, 244.8], [522.72003, 244.8], [1870.3875, 1967.8467], [5208.884, 904.0897], [
-                     661., 199.], [1872.2125, 1967.764], [1003.2909, 240.07318], [316., 736.], [612., 170.40001], [520.4737, 244.68483], [534.98895, 199.06564], [523., 245.], [582., 220.], [5072., 756.], [391.68002, 116.64001], [4572.2886, 1094.861], [1871.217, 1968.2616], [1003.2909, 238.87878]], dtype=np.float32)
-    data2 = np.array([[1080.0001, 221.18402], [5297.137, 400.12195], [1069.2001, 253.20001], [845.0337, 394.15], [1218., 168.], [1250.5305, 200.65819], [1374.797, 93.31201], [1074.9546, 222.15727], [910.1282, 730.9691], [1093., 177.], [1082., 221.], [1081.4401, 220.32], [2401.2292, 1874.5347], [
-                     708., 389.], [1218., 168.], [2403.7178, 1875.1985], [1540.7682, 186.32545], [901., 711.], [1153., 261.], [1078.2721, 221.87523], [1094.8611, 176.67076], [847., 44.], [1426., 175.], [1244.4, 326.40002], [823., 32.], [5173.633, 906.1633], [2401.2292, 1873.7054], [1540.7682, 185.13106]], dtype=np.float32)
+    print("===== Test for ga =====")
+    data1 = np.array([[520.12805, 243.64803], [4679.038, 627.0568], [508.80002, 277.2], [259.78067, 403.10794], [661.2, 199.20001], [695.13727, 232.90681],
+                      [831.51373, 134.78401], [512.395, 243.65637], [329.65274, 756.0514], [502., 292.],
+                      [523.2, 244.8], [522.72003, 244.8], [1870.3875, 1967.8467], [5208.884, 904.0897],
+                      [661., 199.], [1872.2125, 1967.764], [1003.2909, 240.07318], [316., 736.], [
+                          612., 170.40001], [520.4737, 244.68483], [534.98895, 199.06564],
+                      [523., 245.], [582., 220.], [5072., 756.], [391.68002, 116.64001], [4572.2886, 1094.861], [1871.217, 1968.2616], [1003.2909, 238.87878]], dtype=np.float32)
+    data2 = np.array([[1080.0001, 221.18402], [5297.137, 400.12195], [1069.2001, 253.20001], [845.0337, 394.15], [1218., 168.], [1250.5305, 200.65819],
+                      [1374.797, 93.31201], [1074.9546, 222.15727], [910.1282, 730.9691],
+                      [1093., 177.], [1082., 221.], [1081.4401, 220.32], [2401.2292, 1874.5347],
+                      [708., 389.], [1218., 168.], [2403.7178, 1875.1985], [1540.7682, 186.32545], [
+                          901., 711.], [1153., 261.], [1078.2721, 221.87523], [1094.8611, 176.67076],
+                      [847., 44.], [1426., 175.], [1244.4, 326.40002], [823., 32.], [5173.633, 906.1633], [2401.2292, 1873.7054], [1540.7682, 185.13106]], dtype=np.float32)
+    start = time.time()
     gr = GeneticRansac(data1, data2)
+    print("Spent time: ", time.time() - start)
+    print(gr.run())
+    print("===== Test for new ga =====")
+    start = time.time()
+    gr = NewGeneticRansac(data1, data2)
+    print("Spent time: ", time.time() - start)
     print(gr.run())
 
 
