@@ -4,7 +4,7 @@ import sys
 
 import cv2
 
-from stich import Sticher, Matcher, Method
+from stich import Stitcher, Matcher, Method
 
 # os.chdir(os.path.dirname(__file__))
 # os.chdir(os.getcwd())
@@ -47,10 +47,10 @@ def main():
         sys.exit(1)
     matcher = Matcher(img1, img2, Method.SIFT)
     matcher.match(show_match=True)
-    sticher = Sticher(img1, img2, matcher)
-    sticher.stich()
-    cv2.imwrite(sys.argv[1] + 'pano.jpg', sticher.image)
-    print("M: ", sticher.M)
+    stitcher = Stitcher(img1, img2, matcher)
+    stitcher.stich()
+    cv2.imwrite(sys.argv[1] + 'pano.jpg', stitcher.image)
+    print("M: ", stitcher.M)
 
 
 if __name__ == "__main__":

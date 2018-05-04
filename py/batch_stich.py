@@ -8,7 +8,7 @@ import glob
 import os
 
 import cv2
-from stich import Sticher, Method
+from stich import Stitcher, Method
 
 
 def main():
@@ -31,11 +31,11 @@ def main():
 
                 img2 = cv2.imread(file2)
                 img1 = cv2.imread(f)
-                sticher = Sticher(img1, img2, method=method)
-                sticher.stich(show_result=False)
-                cv2.imwrite(name, sticher.image)
+                stitcher = Stitcher(img1, img2, method=method)
+                stitcher.stich(show_result=False)
+                cv2.imwrite(name, stitcher.image)
                 print("Time: ", time.time() - start_time)
-                # print("M: ", sticher.M)
+                # print("M: ", stitcher.M)
     except Exception as e:
         print("Error!: ", e)
     print('\a')

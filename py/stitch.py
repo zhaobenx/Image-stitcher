@@ -158,7 +158,7 @@ def get_weighted_points(image_points: np.ndarray):
     return np.append(image_points, np.array([image_points[max_index]]), axis=0)
 
 
-class Sticher:
+class Stitcher:
 
     def __init__(self, image1: np.ndarray, image2: np.ndarray, method: Enum=Method.SURF, use_kmeans=False):
         """输入图像和匹配，对图像进行拼接
@@ -483,20 +483,20 @@ class Test(unittest.TestCase):
             matcher.match(show_match=True)
 
     def test_transform_coord(self):
-        sticher = Sticher(None, None, None, None)
-        self.assertEqual((0, 0), sticher.get_transformed_position(0, 0))
-        self.assertEqual((10, 20), sticher.get_transformed_position(10, 20))
+        stitcher = Stitcher(None, None, None, None)
+        self.assertEqual((0, 0), stitcher.get_transformed_position(0, 0))
+        self.assertEqual((10, 20), stitcher.get_transformed_position(10, 20))
 
-        sticher.M[0, 2] = 20
-        sticher.M[1, 2] = 10
-        self.assertEqual((20, 10), sticher.get_transformed_position(0, 0))
-        self.assertEqual((30, 30), sticher.get_transformed_position(10, 20))
+        stitcher.M[0, 2] = 20
+        stitcher.M[1, 2] = 10
+        self.assertEqual((20, 10), stitcher.get_transformed_position(0, 0))
+        self.assertEqual((30, 30), stitcher.get_transformed_position(10, 20))
 
-        sticher.M = np.eye(3)
-        sticher.M[0, 1] = 2
-        sticher.M[1, 0] = 4
-        self.assertEqual((0, 0), sticher.get_transformed_position(0, 0))
-        self.assertEqual((50, 60), sticher.get_transformed_position(10, 20))
+        stitcher.M = np.eye(3)
+        stitcher.M[0, 1] = 2
+        stitcher.M[1, 0] = 4
+        self.assertEqual((0, 0), stitcher.get_transformed_position(0, 0))
+        self.assertEqual((50, 60), stitcher.get_transformed_position(10, 20))
 
     def test_get_transformed_size(self):
         image1 = np.empty((500, 400, 3), dtype='uint8')
@@ -507,17 +507,17 @@ class Test(unittest.TestCase):
         image2 = np.empty((400, 400, 3), dtype='uint8')
         image2[:, :] = 50, 150, 255
 
-        sticher = Sticher(image1, image2, None, None)
-        sticher.M[0, 2] = -20
-        sticher.M[1, 2] = 10
-        sticher.M[0, 1] = .2
-        sticher.M[1, 0] = .1
-        left, right, top, bottom = sticher.get_transformed_size()
-        print(sticher.get_transformed_size())
+        stitcher = Stitcher(image1, image2, None, None)
+        stitcher.M[0, 2] = -20
+        stitcher.M[1, 2] = 10
+        stitcher.M[0, 1] = .2
+        stitcher.M[1, 0] = .1
+        left, right, top, bottom = stitcher.get_transformed_size()
+        print(stitcher.get_transformed_size())
         width = int(max(right, image2.shape[1]) - min(left, 0))
         height = int(max(bottom, image2.shape[0]) - min(top, 0))
         print(width, height)
-        show_image(cv2.warpPerspective(image1, sticher.M, (width, height)))
+        show_image(cv2.warpPerspective(image1, stitcher.M, (width, height)))
 
     def test_stich(self):
         image1 = np.empty((500, 400, 3), dtype='uint8')
@@ -529,12 +529,12 @@ class Test(unittest.TestCase):
         image2[:, :] = 50, 150, 255
 
         points = np.float32([[0, 0], [20, 20], [12, 12], [40, 20]])
-        sticher = Sticher(image1, image2, points, points)
-        sticher.M[0, 2] = 20
-        sticher.M[1, 2] = 10
-        sticher.M[0, 1] = .2
-        sticher.M[1, 0] = .1
-        sticher.stich()
+        stitcher = Stitcher(image1, image2, points, points)
+        stitcher.M[0, 2] = 20
+        stitcher.M[1, 2] = 10
+        stitcher.M[0, 1] = .2
+        stitcher.M[1, 0] = .1
+        stitcher.stich()
 
 
 def main():
@@ -551,10 +551,10 @@ if __name__ == "__main__":
     img1 = cv2.imread("../resource/20-right.jpg")
     # matcher = Matcher(img1, img2, Method.ORB)
     # matcher.match(max_match_lenth=20, show_match=True,)
-    sticher = Sticher(img1, img2, Method.ORB, False)
-    sticher.stich(max_match_lenth=40, use_partial=False)
+    stitcher = Stitcher(img1, img2, Method.ORB, False)
+    stitcher.stich(max_match_lenth=40, use_partial=False)
 
-    # cv2.imwrite('../resource/20-sift-ransac.jpg', sticher.image)
+    # cv2.imwrite('../resource/20-sift-ransac.jpg', stitcher.image)
 
     print("Time: ", time.time() - start_time)
-    print("M: ", sticher.M)
+    print("M: ", stitcher.M)
