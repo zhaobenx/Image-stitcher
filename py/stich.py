@@ -74,7 +74,8 @@ class Matcher():
             # error if not set this
             self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         else:
-            self.matcher = cv2.FlannBasedMatcher()
+            self.matcher = cv2.BFMatcher(crossCheck=True)
+            # self.matcher = cv2.FlannBasedMatcher()
 
         self.match_points = []
 
@@ -198,11 +199,11 @@ class Sticher:
         self.M, _ = cv2.findHomography(
             self.image_points1, self.image_points2, cv2.RANSAC)
 
-        ransac = NewGeneticRansac(self.image_points1, self.image_points2)
+        ransac = Ransac(self.image_points1, self.image_points2)
         self.M = ransac.run()
-        # print("RANSAC Iteration times: ", ransac.max_iter_times)
         print("RANSAC Good Points: ", ransac.good_points)
-        # print("RANSAC Totall Points: ", ransac.points_length)
+        print("RANSAC Iteration times: ", ransac.max_iter_times)
+        # # print("RANSAC Totall Points: ", ransac.points_length)
 
         left, right, top, bottom = self.get_transformed_size()
         # print(self.get_transformed_size())
@@ -546,14 +547,14 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(__file__))
 
     start_time = time.time()
-    img2 = cv2.imread("../resource/19-left.jpg")
-    img1 = cv2.imread("../resource/19-right.jpg")
+    img2 = cv2.imread("../resource/20-left.jpg")
+    img1 = cv2.imread("../resource/20-right.jpg")
     # matcher = Matcher(img1, img2, Method.ORB)
     # matcher.match(max_match_lenth=20, show_match=True,)
     sticher = Sticher(img1, img2, Method.ORB, False)
     sticher.stich(max_match_lenth=40, use_partial=False)
 
-    # cv2.imwrite('../resource/19-orb-17.jpg', sticher.image)
+    # cv2.imwrite('../resource/20-sift-ransac.jpg', sticher.image)
 
     print("Time: ", time.time() - start_time)
     print("M: ", sticher.M)
