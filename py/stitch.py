@@ -16,6 +16,7 @@ import numpy as np
 
 import k_means
 from ransac import *
+import blend
 
 
 def show_image(image: np.ndarray) -> None:
@@ -199,10 +200,10 @@ class Stitcher:
         self.M, _ = cv2.findHomography(
             self.image_points1, self.image_points2, cv2.RANSAC)
 
-        ransac = Ransac(self.image_points1, self.image_points2)
-        self.M = ransac.run()
-        print("RANSAC Good Points: ", ransac.good_points)
-        print("RANSAC Iteration times: ", ransac.max_iter_times)
+        # ransac = Ransac(self.image_points1, self.image_points2)
+        # self.M = ransac.run()
+        # print("RANSAC Good Points: ", ransac.good_points)
+        # print("RANSAC Iteration times: ", ransac.max_iter_times)
         # # print("RANSAC Totall Points: ", ransac.points_length)
 
         left, right, top, bottom = self.get_transformed_size()
@@ -348,7 +349,6 @@ class Stitcher:
                           )
                     part = self.image1[boder_0:boder_1, boder_2:boder_3]
 
-#
                     print(boder_0, boder_1, boder_2, boder_3)
                     for point in transform_acer[minmum]:
                         print(point)
@@ -362,7 +362,7 @@ class Stitcher:
                     #     print(point)
                     #     cv2.circle(part, tuple(
                     #         map(int, point)), 25, (20, 97, 199), 8)
-#
+
                     # cv2.circle(part, tuple(map(int, relevtive_point(point))),
                     #            40, (255, 0, 0), 10)
                     # show_image(part)
@@ -386,44 +386,47 @@ class Stitcher:
             np.ndarray: 融合结果
         """
 
-        # result = np.zeros(image1.shape, dtype='uint8')
-        # result[0:image2.shape[0], 0:self.image2.shape[1]] = self.image2
-        # result = np.maximum(transformed, result)
-
-        result = cv2.addWeighted(image1, 0.5, image2, 0.5, 1)
-        # result = self.average(image1, image2)
+        # result = cv2.addWeighted(image1, 0.5, image2, 0.5, 1)
+        # result = blend.average_blend(image1, image2)
+        mask = self.generate_mask(image1, image2)
+        print("Blending")
+        result = blend.gaussian_blend(image1, image2, mask)
 
         return result
 
-    def average(self, image1: np.ndarray, image2: np.ndarray) -> np.ndarray:
-        """平均算法拼合
+    def generate_mask(self, image1: np.ndarray, image2: np.ndarray):
+        """生成供融合使用的遮罩，由变换后图像的垂直平分线来构成分界线
 
         Args:
-            image1 (np.ndarray): 图片一
-            image2 (np.ndarray): 图片二
+            shape (tuple): 遮罩大小
 
         Returns:
-            np.ndarray: 拼合后图像
+            np.ndarray: 01数组
         """
+        print("Generating mask")
+        center1 = self.image1.shape[0] / 2, self.image1.shape[1] / 2
+        center2 = self.image2.shape[0] / 2, self.image2.shape[1] / 2
+        center2 = self.get_transformed_position(center2)
+        # 垂直平分线 y=-(x2-x1)/(y2-y1)* [x-(x1+x2)/2]+(y1+y2)/2
+        x1, y1 = center1
+        x2, y2 = center2
+        print(x1, y1, x2, y2)
+        print(-(x2 - x1) / (y2 - y1), ' * (x -', (x1 + x2) / 2, ') + ', (y1 + y2) / 2)
 
-        assert(image1.shape == image2.shape)
-        result = np.zeros(image1.shape, dtype='uint8')
+        def y(x):
+            return -((x2 - x1) / (y2 - y1)) * (x - (x1 + x2) / 2) + (y1 + y2) / 2
 
-        # image1 != 0 && image2 !=0:
-        overlap = np.logical_and(
-            np.all(np.not_equal(image1, [0, 0, 0]), axis=2),
-            np.all(np.not_equal(image2, [0, 0, 0]), axis=2),
-        )
-        # 重叠处用平均值
-        result[overlap] = np.average(
-            np.array([image1[overlap], image2[overlap]]), axis=0
-        ) .astype(np.uint8)
-        # 非重叠处采选最大值
-        not_overlap = np.logical_not(overlap)
-        result[not_overlap] = np.maximum(
-            image1[not_overlap], image2[not_overlap])
+        if y2 > y1:
+            def function(i, j, *k): return j > y(i)
+        else:
+            def function(i, j, *k): return j < y(i)
 
-        return result
+        mask = np.fromfunction(function, image1.shape)
+        # mask = mask&_i2+mask&i1+i1&_i2
+        mask = np.logical_and(mask, np.logical_not(image2)) \
+            + np.logical_and(mask, image1)\
+            + np.logical_and(image1, np.logical_not(image2))
+        return mask
 
     def get_transformed_size(self) ->Tuple[int, int, int, int]:
         """计算形变后的边界
