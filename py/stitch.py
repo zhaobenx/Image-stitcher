@@ -49,14 +49,14 @@ class Area:
 
 class Matcher():
 
-    def __init__(self, image1: np.ndarray, image2: np.ndarray, method: Enum=Method.SURF, threshold=800) -> None:
+    def __init__(self, image1: np.ndarray, image2: np.ndarray, method: Enum=Method.SIFT, threshold=800) -> None:
         """输入两幅图像，计算其特征值
         此类用于输入两幅图像，计算其特征值，输入两幅图像分别为numpy数组格式的图像，其中的method参数要求输入SURF、SIFT或者ORB，threshold参数为特征值检测所需的阈值。
 
         Args:
             image1 (np.ndarray): 图像一
             image2 (np.ndarray): 图像二
-            method (Enum, optional): Defaults to Method.SURF. 特征值检测方法
+            method (Enum, optional): Defaults to Method.SIFT. 特征值检测方法
             threshold (int, optional): Defaults to 800. 特征值阈值
 
         """
@@ -161,7 +161,7 @@ def get_weighted_points(image_points: np.ndarray):
 
 class Stitcher:
 
-    def __init__(self, image1: np.ndarray, image2: np.ndarray, method: Enum=Method.SURF, use_kmeans=False):
+    def __init__(self, image1: np.ndarray, image2: np.ndarray, method: Enum=Method.SIFT, use_kmeans=False):
         """输入图像和匹配，对图像进行拼接
         目前采用简单矩阵匹配和平均值拼合
 
@@ -216,17 +216,17 @@ class Stitcher:
             self.partial_transform()
 
         # 移动矩阵
-        adjustM = np.array(
+        self.adjustM = np.array(
             [[1, 0, max(-left, 0)],  # 横向
              [0, 1, max(-top, 0)],  # 纵向
              [0, 0, 1]
              ], dtype=np.float64)
         # print('adjustM: ', adjustM)
-        self.M = np.dot(adjustM, self.M)
+        self.M = np.dot(self.adjustM, self.M)
         transformed_1 = cv2.warpPerspective(
             self.image1, self.M, (width, height))
         transformed_2 = cv2.warpPerspective(
-            self.image2, adjustM, (width, height))
+            self.image2, self.adjustM, (width, height))
 
         self.image = self.blend(transformed_1, transformed_2)
 
@@ -234,7 +234,7 @@ class Stitcher:
             for point1, point2 in zip(self.image_points1, self.image_points2):
                 point1 = self.get_transformed_position(tuple(point1))
                 point1 = tuple(map(int, point1))
-                point2 = self.get_transformed_position(tuple(point2), M=adjustM)
+                point2 = self.get_transformed_position(tuple(point2), M=self.adjustM)
                 point2 = tuple(map(int, point2))
 
                 cv2.line(self.image, point1, point2, random.choice(colors), 3)
@@ -390,8 +390,13 @@ class Stitcher:
         # result = blend.average_blend(image1, image2)
         mask = self.generate_mask(image1, image2)
         print("Blending")
-        result = blend.gaussian_blend(image1, image2, mask)
 
+        # result = blend.gaussian_blend(image1, image2, mask, mask_blend=10)
+        result = blend.direct_blend(image1, image2, mask, mask_blend=2)
+
+        # mask = (mask * 255).astype('uint8')
+        # mask[:] = 255
+        # result = cv2.seamlessClone(image2, image1, mask, (image1.shape[1]//2, image1.shape[0]//2), cv2.MIXED_CLONE)
         return result
 
     def generate_mask(self, image1: np.ndarray, image2: np.ndarray):
@@ -405,21 +410,21 @@ class Stitcher:
         """
         print("Generating mask")
         center1 = self.image1.shape[0] / 2, self.image1.shape[1] / 2
+        center1 = self.get_transformed_position(center1)
         center2 = self.image2.shape[0] / 2, self.image2.shape[1] / 2
-        center2 = self.get_transformed_position(center2)
+        center2 = self.get_transformed_position(center2, M=self.adjustM)
         # 垂直平分线 y=-(x2-x1)/(y2-y1)* [x-(x1+x2)/2]+(y1+y2)/2
-        x1, y1 = center1
-        x2, y2 = center2
-        print(x1, y1, x2, y2)
-        print(-(x2 - x1) / (y2 - y1), ' * (x -', (x1 + x2) / 2, ') + ', (y1 + y2) / 2)
-
-        def y(x):
-            return -((x2 - x1) / (y2 - y1)) * (x - (x1 + x2) / 2) + (y1 + y2) / 2
+        y1, x1 = center1
+        y2, x2 = center2
+        # print(x1, y1, x2, y2)
+        # print(-(x2 - x1) / (y2 - y1), ' * (x -', (x1 + x2) / 2, ') + ', (y1 + y2) / 2)
 
         if y2 > y1:
-            def function(i, j, *k): return j > y(i)
+            def function(x, y, *z):
+                return (y2 - y1) * y < -(x2 - x1) * (x - (x1 + x2) / 2) + (y2 - y1) * (y1 + y2) / 2
         else:
-            def function(i, j, *k): return j < y(i)
+            def function(x, y, *z):
+                return (y2 - y1) * y > -(x2 - x1) * (x - (x1 + x2) / 2) + (y2 - y1) * (y1 + y2) / 2
 
         mask = np.fromfunction(function, image1.shape)
         # mask = mask&_i2+mask&i1+i1&_i2
@@ -550,14 +555,14 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(__file__))
 
     start_time = time.time()
-    img2 = cv2.imread("../resource/20-left.jpg")
-    img1 = cv2.imread("../resource/20-right.jpg")
+    img1 = cv2.imread("../resource/19-left.jpg")
+    img2 = cv2.imread("../resource/19-right.jpg")
     # matcher = Matcher(img1, img2, Method.ORB)
     # matcher.match(max_match_lenth=20, show_match=True,)
-    stitcher = Stitcher(img1, img2, Method.ORB, False)
+    stitcher = Stitcher(img1, img2, Method.SIFT, False)
     stitcher.stich(max_match_lenth=40, use_partial=False)
 
-    # cv2.imwrite('../resource/20-sift-ransac.jpg', stitcher.image)
+    # cv2.imwrite('../resource/21-sift-gauss.jpg', stitcher.image)
 
     print("Time: ", time.time() - start_time)
     print("M: ", stitcher.M)

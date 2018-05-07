@@ -24,7 +24,7 @@ class Blend:
 
 class GaussianBlend(Blend):
 
-    LEVEL = 3
+    LEVEL = 6
 
     def __init__(self, image1: np.ndarray, image2: np.ndarray, mask: np.ndarray):
         self.image1 = image1
@@ -120,11 +120,11 @@ def average_blend(image1: np.ndarray, image2: np.ndarray) -> np.ndarray:
     return result
 
 
-def gaussian_blend(image1: np.ndarray, image2: np.ndarray, mask: np.ndarray, mask_blend=5):
+def gaussian_blend(image1: np.ndarray, image2: np.ndarray, mask: np.ndarray, mask_blend=3):
     mask = gaussian_filter(mask.astype(float), (mask_blend, mask_blend, 0))
     show_image((mask * 255).astype('uint8'))
-    show_image(image1)
-    show_image(image2)
+    # show_image(image1)
+    # show_image(image2)
 
     return GaussianBlend(image1, image2, mask).blend()
 
@@ -134,8 +134,8 @@ def direct_blend(image1: np.ndarray, image2: np.ndarray, mask: np.ndarray, mask_
     if np.issubdtype(mask.dtype, np.integer):
         mask = mask / 255
     show_image((mask * 255).astype('uint8'))
-    show_image(image1)
-    show_image(image2)
+    # show_image(image1)
+    # show_image(image2)
 
     return (image1 * mask + image2 * (1 - mask)).astype('uint8')
 
