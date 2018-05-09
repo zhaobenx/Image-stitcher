@@ -35,40 +35,56 @@ class GaussianBlend(Blend):
             self.mask = mask
 
     def blend(self):
+        print("Calculating pyramid")
         la1 = self.get_laplacian_pyramid(self.image1)
         la2 = self.get_laplacian_pyramid(self.image2)
 
         gm = self.get_gaussian_pyramid(self.mask)
-        new_la = la1 * gm + la2 * (1.0 - gm)
-        return self.rebuild_image(new_la)
+
+        result = np.zeros(self.image1.shape, int)
+        # new_la = []
+        for i in range(self.LEVEL):
+            mask = next(gm)
+            # new_la.append(next(la1) * mask + next(la2) * (1.0 - mask))
+
+            result += (next(la1) * mask + next(la2) * (1.0 - mask)).astype(int)
+            del mask
+            print(i, " level blended")
+        return np.clip(result, 0, 255).astype('uint8')
+        
+        # print("Rebuilding ")
+        # return self.rebuild_image(new_la)
 
     @classmethod
     def get_laplacian_pyramid(cls, image: np.ndarray):
-        output = []
+        # output = []
         last = image
 
         for i in range(cls.LEVEL - 1):
             this = gaussian_filter(last, (1, 1, 0))
             laplace = cls.subtract(last, this)
-            output.append(laplace)
+            # output.append(laplace)
+            yield laplace
             last = this
-        output.append(last)
-        return np.array(output)
+        # output.append(last)
+        yield last
+        # return output
+
+    @classmethod
+    def get_gaussian_pyramid(cls, image: np.ndarray):
+        # G = []
+        tmp = image
+        for i in range(cls.LEVEL):
+            # G.append(tmp)
+            yield tmp
+            tmp = gaussian_filter(tmp, (1, 1, 0))
+
+        # return G
 
     @staticmethod
     def rebuild_image(laplacian_pyramid: np.ndarray):
         result = np.sum(laplacian_pyramid, axis=0)
         return np.clip(result, 0, 255).astype('uint8')
-
-    @classmethod
-    def get_gaussian_pyramid(cls, image: np.ndarray):
-        G = []
-        tmp = image
-        for i in range(cls.LEVEL):
-            G.append(tmp)
-            tmp = gaussian_filter(tmp, (1, 1, 0))
-
-        return np.array(G)
 
     @staticmethod
     def subtract(array1: np.ndarray, array2: np.ndarray):
