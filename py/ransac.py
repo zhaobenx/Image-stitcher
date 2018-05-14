@@ -396,7 +396,7 @@ class NewGeneticRansac(Ransac):
             # prop = [x.value / all_value for x in self.population]
             # all_value = sum([x.value for x in self.population])
             # self.population = np.random.choice(self.population, size=self.SAMPLE // 2, replace=False, p=prop)
-            print("The {} generation after selection: ".format(i), [i.value for i in self.population])
+            # print("The {} generation after selection: ".format(i), [i.value for i in self.population])
 
             children = []
             # 交叉
@@ -409,6 +409,135 @@ class NewGeneticRansac(Ransac):
                 # child.dna.put([corss_index], father.dna.take([corss_index]))
                 # 平均染色体
                 child = self.Individual((mother.dna + father.dna) / 2)
+
+                # 变异
+                if random.random() < self.MUTATION_RATE:
+                    rand_index = np.random.choice(range(8), self.MUTATION_COUNT, replace=0)
+                    # 利用卡方分布变异
+                    gene = child.dna.take(rand_index)
+                    gene *= np.random.chisquare(10, rand_index.size)
+                    child.dna.put(rand_index, gene)
+                child.value = self.get_good_points(self.data1, self.data2, child.dna)
+                children.append(child)
+
+            self.population = np.concatenate((self.population, children))
+            # print("The {} generation after propagate:".format(i), [i.value for i in self.population])
+        # end loop for reproduction
+
+        # 获取最优点
+        self.population = sorted(self.population, reverse=True)
+        if self.population[0].value > 0:
+            self.good_points = self.population[0].value
+            return self.population[0].dna
+        else:
+            raise RuntimeError("Cannot get transfrom matrix")
+
+
+class GeneticTransform(Ransac):
+
+    class Individual:
+        def __init__(self, dna: np.ndarray, value=0):
+            self.dna = dna
+            self.value = value
+
+        def __lt__(self, other: 'Individual'):
+            return self.value < other.value
+
+        def __repr__(self):
+            return "dna: <{}>, value: {}".format(self.dna, self.value)
+
+        __str__ = __repr__
+
+    SAMPLE = 30
+    GROUP_SIZE = 10
+    GENERATION = 20
+    MUTATION_RATE = 0.2
+    MUTATION_COUNT = 1
+
+    def __init__(self, data1: np.ndarray, data2: np.ndarray):
+        """在ransac的基础上利用遗传算法优化点选
+
+        Args:
+            data1 (np.ndarray): 位置点1
+            data2 (np.ndarray): 位置点2
+        """
+        self.data1 = data1
+        self.data2 = data2
+        if(self.data1.shape != self.data2.shape):
+            raise ValueError("Argument shape not equal")
+
+        self.points_length = self.data1.shape[0]
+        if self.points_length < 4:
+            raise RuntimeError("Not enough points to calculate")
+        self.GROUP_SIZE = min(self.GROUP_SIZE, max(self.points_length // 2, 4))
+
+        self.population = []
+        for i in range(self.SAMPLE):
+            choice = np.random.choice(range(self.points_length), self.GROUP_SIZE, replace=0)
+
+            M = self.get_lss_matrix(self.data1[choice], self.data2[choice])
+            indv = self.Individual(M, self.get_good_points(self.data1, self.data2, M))
+            self.population.append(indv)
+
+    @staticmethod
+    def get_lss_matrix(data1: np.ndarray, data2: np.ndarray):
+
+        data_length = data1.shape[0]
+        X = np.array((8, 1), np.float)
+        A = np.zeros((2 * data_length, 8), np.float)
+        B = np.zeros((2 * data_length), np.float)
+
+        for i in range(data_length):
+            A[2 * i][0] = A[2 * i + 1][3] = data1[i][0]
+            A[2 * i][1] = A[2 * i + 1][4] = data1[i][1]
+            A[2 * i][2] = A[2 * i + 1][5] = 1
+            A[2 * i][3] = A[2 * i][4] = A[2 * i][5] = A[2 * i + 1][0] = A[2 * i + 1][1] = A[2 * i + 1][2] = 0
+            A[2 * i][6] = -data1[i][0] * data2[i][0]
+            A[2 * i][7] = -data1[i][1] * data2[i][0]
+            A[2 * i + 1][6] = -data1[i][0] * data2[i][1]
+            A[2 * i + 1][7] = -data1[i][1] * data2[i][1]
+            B[2 * i] = data2[i][0]
+            B[2 * i + 1] = data2[i][1]
+
+        try:
+            # X = linalg.solve(A, B).copy()
+            dot = np.dot
+            AT = A.T
+            X = dot(dot(linalg.inv(np.dot(AT, A)), AT), B)
+
+        except Exception as e:
+            print("Error when calcuating M: ", e)
+            return False
+        else:
+            X.resize((3, 3), refcheck=False)
+            X[2][2] = 1
+        return X
+
+    def run(self):
+
+        for i in range(self.GENERATION):
+
+            self.population = sorted(self.population, reverse=True)
+
+            # 去除一半
+            self.population = self.population[:self.SAMPLE // 2]
+            # TODO: 实现轮盘选择
+            # prop = [x.value / all_value for x in self.population]
+            # all_value = sum([x.value for x in self.population])
+            # self.population = np.random.choice(self.population, size=self.SAMPLE // 2, replace=False, p=prop)
+            print("The {} generation after selection: ".format(i), [i.value for i in self.population])
+
+            children = []
+            # 交叉
+            while len(children) + len(self.population) <= self.SAMPLE:
+                mother = random.choice(self.population)
+                father = random.choice(self.population)
+                # 交换染色体
+                corss_index = random.choices(range(8), k=4)
+                child = deepcopy(mother)
+                child.dna.put([corss_index], father.dna.take([corss_index]))
+                # # 平均染色体
+                # child = self.Individual((mother.dna + father.dna) / 2)
 
                 # 变异
                 if random.random() < self.MUTATION_RATE:
@@ -487,6 +616,9 @@ def test():
     gr = NewGeneticRansac(data1, data2)
     print("Spent time: ", time.time() - start)
     print(gr.run())
+    print("===== Test for genetic tranform =====")
+    print(GeneticTransform.get_lss_matrix(data_point1, data_point2))
+    print(GeneticTransform(data1, data2).run())
 
 
 if __name__ == "__main__":
