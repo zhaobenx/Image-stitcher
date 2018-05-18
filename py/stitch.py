@@ -112,11 +112,6 @@ class Matcher():
 
         match_len = min(len(self.match_points), max_match_lenth)
 
-        # if self.method == Method.ORB:
-        #     threshold = 20
-        # elif self.method == Method.SIFT:
-        #     threshold = 20
-        # max_distance = max(2 * self.match_points[0].distance, threshold)
 
         # in case distance is 0
         max_distance = max(2 * self.match_points[0].distance, 20)
@@ -150,9 +145,6 @@ class Matcher():
 
 
 def get_weighted_points(image_points: np.ndarray):
-
-    # print(k_means.k_means(image_points))
-    # exit(0)
 
     average = np.average(image_points, axis=0)
 
@@ -198,16 +190,12 @@ class Stitcher:
             self.image_points1, self.image_points2 = (
                 self.matcher.image_points1, self.matcher.image_points2)
 
-        # ransac = Ransac(self.image_points1, self.image_points2)
-        # self.M = ransac.run()
         if use_new_match_method:
             self.M = ransac.GeneticTransform(self.image_points1, self.image_points2).run()
         else:
             self.M, _ = cv2.findHomography(
                 self.image_points1, self.image_points2, method=cv2.RANSAC)
-        # print("RANSAC Good Points: ", ransac.good_points)
-        # print("RANSAC Iteration times: ", ransac.max_iter_times)
-        # # print("RANSAC Totall Points: ", ransac.points_length)
+        
 
         left, right, top, bottom = self.get_transformed_size()
         # print(self.get_transformed_size())
@@ -255,8 +243,7 @@ class Stitcher:
         offset_x = np.min(self.image_points1[:, 0])
         offset_y = np.min(self.image_points1[:, 1])
 
-        # width = np.max(self.image_points1[:, 0]) - offset_x
-        # height = np.max(self.image_points1[:, 1]) - offset_y
+        height = np.max(self.image_points1[:, 1]) - offset_y
         x_mid = int((np.max(self.image_points1[:, 0]) + offset_x) / 2)
         y_mid = int((np.max(self.image_points1[:, 1]) + offset_y) / 2)
 
@@ -275,10 +262,7 @@ class Stitcher:
                           [center, [0, down], [right, 0]],
                           [center, [left, down], [left, 0]],
                           [[0, up], [left, up], [left, up]]]
-        # transform_acer = [[center, up, right],
-        #                   [center, down, right],
-        #                   [center, down, left],
-        #                   [center, up, left]]
+                         [center, up, left]]
 
         # 对点的位置进行分类
         for index in range(self.image_points1.shape[0]):
@@ -361,14 +345,7 @@ class Stitcher:
                         print(point)
                         cv2.circle(part, tuple(
                             map(int, point)), 22, (226, 43, 138), 8)
-                    # for point in dest_point:
-                    #     print(point)
-                    #     cv2.circle(part, tuple(
-                    #         map(int, point)), 25, (20, 97, 199), 8)
-
-                    # cv2.circle(part, tuple(map(int, relevtive_point(point))),
-                    #            40, (255, 0, 0), 10)
-                    # show_image(part)
+                    how_image(part)
 
                     part = cv2.warpPerspective(
                         part, partial_M, (part.shape[1], part.shape[0]))
@@ -389,8 +366,7 @@ class Stitcher:
             np.ndarray: 融合结果
         """
 
-        # result = cv2.addWeighted(image1, 0.5, image2, 0.5, 1)
-        # result = blend.average_blend(image1, image2)
+        result = blend.average_blend(image1, image2)
         mask = self.generate_mask(image1, image2)
         print("Blending")
         if use_gauss_blend:
@@ -398,10 +374,7 @@ class Stitcher:
         else:
             result = blend.direct_blend(image1, image2, mask, mask_blend=2)
 
-        # mask = (mask * 255).astype('uint8')
-        # mask[:] = 255
-        # result = cv2.seamlessClone(image2, image1, mask, (image1.shape[1]//2, image1.shape[0]//2), cv2.MIXED_CLONE)
-        return result
+         return result
 
     def generate_mask(self, image1: np.ndarray, image2: np.ndarray):
         """生成供融合使用的遮罩，由变换后图像的垂直平分线来构成分界线
@@ -420,9 +393,7 @@ class Stitcher:
         # 垂直平分线 y=-(x2-x1)/(y2-y1)* [x-(x1+x2)/2]+(y1+y2)/2
         y1, x1 = center1
         y2, x2 = center2
-        # print(x1, y1, x2, y2)
-        # print(-(x2 - x1) / (y2 - y1), ' * (x -', (x1 + x2) / 2, ') + ', (y1 + y2) / 2)
-
+        
         if y2 > y1:
             def function(x, y, *z):
                 return (y2 - y1) * y < -(x2 - x1) * (x - (x1 + x2) / 2) + (y2 - y1) * (y1 + y2) / 2
@@ -431,6 +402,7 @@ class Stitcher:
                 return (y2 - y1) * y > -(x2 - x1) * (x - (x1 + x2) / 2) + (y2 - y1) * (y1 + y2) / 2
 
         mask = np.fromfunction(function, image1.shape)
+        
         # mask = mask&_i2+mask&i1+i1&_i2
         mask = np.logical_and(mask, np.logical_not(image2)) \
             + np.logical_and(mask, image1)\
@@ -561,8 +533,6 @@ if __name__ == "__main__":
     start_time = time.time()
     img1 = cv2.imread("../resource/19-left.jpg")
     img2 = cv2.imread("../resource/19-right.jpg")
-    # matcher = Matcher(img1, img2, Method.ORB)
-    # matcher.match(max_match_lenth=20, show_match=True,)
     stitcher = Stitcher(img1, img2, Method.SIFT, False)
     stitcher.stich(max_match_lenth=40, use_partial=False, use_new_match_method=1)
 

@@ -476,7 +476,7 @@ class GeneticTransform(Ransac):
 
         self.population = []
         try_times = 0
-        
+
         while len(self.population) < self.SAMPLE:
             try_times += 1
             if try_times > self.SAMPLE * 4:
