@@ -6,6 +6,7 @@ Created on 2018-04-21 21:04:04
 """
 import random
 from copy import deepcopy
+from typing import Tuple
 
 import numpy as np
 from scipy import linalg
@@ -486,11 +487,23 @@ class GeneticTransform(Ransac):
                     raise RuntimeError("Cannot find enough points")
             choice = np.random.choice(range(self.points_length), self.GROUP_SIZE, replace=0)
             M = self.get_lss_matrix(self.data1[choice], self.data2[choice])
-            good_points = self.get_good_points(self.data1, self.data2, M)
+            good_points, distance = self.get_value(self.data1, self.data2, M)
             if good_points < 4:
                 continue
-            indv = self.Individual(M, good_points)
+            indv = self.Individual(M, self.get_judgement(good_points, distance))
             self.population.append(indv)
+
+    @staticmethod
+    def get_judgement(good_points, distance):
+        """用于生成适应度
+
+        Args:
+            good_points (int): 好点的个数
+            distance (float): 好点的平方和
+        """
+        if good_points == 0:
+            return -distance
+        return good_points - distance / good_points
 
     @staticmethod
     def get_lss_matrix(data1: np.ndarray, data2: np.ndarray) -> np.ndarray:
@@ -535,6 +548,27 @@ class GeneticTransform(Ransac):
             X[2][2] = 1
         return X
 
+    @classmethod
+    def get_value(cls, points1: np.ndarray, points2: np.ndarray, M: np.ndarray, threshold=3)-> Tuple[int, float]:
+        """求得在给定变换矩阵下，计算将points1变换后与points2之间的距离
+
+        Args:
+            points1 (np.ndarray): n*2形状数组
+            points2 (np.ndarray): n*2形状数组
+            M (np.ndarray): 3*3透视变换矩阵
+            threshold (int, optional): Defaults to 3. 距离阈值
+
+        Returns:
+            int: 优秀点个数
+            float: 优秀点偏差平方和
+        """
+
+        transformed = cls.perspective_transform(points1, M)
+        dis = np.sum((transformed - points2) * (transformed - points2), axis=1)
+        good = dis < threshold * threshold
+        error = np.sum(dis[good])
+        return np.sum(good), error
+
     def run(self):
 
         for i in range(self.GENERATION):
@@ -548,6 +582,18 @@ class GeneticTransform(Ransac):
             # all_value = sum([x.value for x in self.population])
             # self.population = np.random.choice(self.population, size=self.SAMPLE // 2, replace=False, p=prop)
             print("The {} generation after selection: ".format(i), [i.value for i in self.population])
+
+            # 对前几项进行变异操作
+            for j in range(min(12, 4*len(self.population))):
+                new = deepcopy(self.population[j//3])
+                rand_index = np.random.choice(range(8), self.MUTATION_COUNT, replace=0)
+                # 用正态分布~利用卡方分布变异~
+                gene = new.dna.take(rand_index)
+                # gene *= np.random.chisquare(2, rand_index.size)
+                gene *= np.random.normal(1, .1, rand_index.size)
+                new.dna.put(rand_index, gene)
+                new.value = self.get_judgement(*self.get_value(self.data1, self.data2, new.dna))
+                self.population.append(new)
 
             children = []
             # 交叉
@@ -566,9 +612,9 @@ class GeneticTransform(Ransac):
                     rand_index = np.random.choice(range(8), self.MUTATION_COUNT, replace=0)
                     # 利用卡方分布变异
                     gene = child.dna.take(rand_index)
-                    gene *= np.random.chisquare(10, rand_index.size)
+                    gene *= np.random.chisquare(2, rand_index.size)
                     child.dna.put(rand_index, gene)
-                child.value = self.get_good_points(self.data1, self.data2, child.dna)
+                child.value = self.get_judgement(*self.get_value(self.data1, self.data2, child.dna))
                 children.append(child)
 
             self.population = np.concatenate((self.population, children))
@@ -641,6 +687,7 @@ def test():
     print("===== Test for genetic tranform =====")
     print(GeneticTransform.get_lss_matrix(data_point1, data_point2))
     print(GeneticTransform(data1, data2).run())
+    print(GeneticTransform.get_value(data_point1, data_point2, M))
 
 
 if __name__ == "__main__":
