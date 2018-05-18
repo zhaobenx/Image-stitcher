@@ -15,7 +15,7 @@ import cv2
 import numpy as np
 
 import k_means
-import ransac 
+import ransac
 import blend
 
 
@@ -75,8 +75,8 @@ class Matcher():
             # error if not set this
             self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         else:
-            self.matcher = cv2.BFMatcher(crossCheck=True)
-            # self.matcher = cv2.FlannBasedMatcher()
+            # self.matcher = cv2.BFMatcher(crossCheck=True)
+            self.matcher = cv2.FlannBasedMatcher()
 
         self.match_points = []
 
@@ -136,7 +136,6 @@ class Matcher():
                                    self.match_points, None, flags=0)
             show_image(img3)
             # cv2.imwrite('../resource/3-sift-match.jpg', img3)
-            
 
         '''由最佳匹配取得匹配点对，并进行形变拼接'''
         image_points1, image_points2 = [], []
@@ -183,7 +182,7 @@ class Stitcher:
 
         self.image = None
 
-    def stich(self, show_result=True, max_match_lenth=40, show_match_point=True, use_partial=False, use_new_match_method = False):
+    def stich(self, show_result=True, max_match_lenth=40, show_match_point=True, use_partial=False, use_new_match_method=False, use_gauss_blend=True):
         """对图片进行拼合
 
             show_result (bool, optional): Defaults to True. 是否展示拼合图像
@@ -199,13 +198,13 @@ class Stitcher:
             self.image_points1, self.image_points2 = (
                 self.matcher.image_points1, self.matcher.image_points2)
 
-        self.M, _ = cv2.findHomography(
-            self.image_points1, self.image_points2, cv2.RANSAC)
-
         # ransac = Ransac(self.image_points1, self.image_points2)
         # self.M = ransac.run()
         if use_new_match_method:
             self.M = ransac.GeneticTransform(self.image_points1, self.image_points2).run()
+        else:
+            self.M, _ = cv2.findHomography(
+                self.image_points1, self.image_points2, method=cv2.RANSAC)
         # print("RANSAC Good Points: ", ransac.good_points)
         # print("RANSAC Iteration times: ", ransac.max_iter_times)
         # # print("RANSAC Totall Points: ", ransac.points_length)
@@ -232,7 +231,7 @@ class Stitcher:
         transformed_2 = cv2.warpPerspective(
             self.image2, self.adjustM, (width, height))
 
-        self.image = self.blend(transformed_1, transformed_2)
+        self.image = self.blend(transformed_1, transformed_2, use_gauss_blend=use_gauss_blend)
 
         if show_match_point:
             for point1, point2 in zip(self.image_points1, self.image_points2):
@@ -379,7 +378,7 @@ class Stitcher:
                     self.image1[boder_0:boder_1, boder_2:boder_3] = part
                     return
 
-    def blend(self, image1: np.ndarray, image2: np.ndarray) -> np.ndarray:
+    def blend(self, image1: np.ndarray, image2: np.ndarray, use_gauss_blend=True) -> np.ndarray:
         """对图像进行融合
 
         Args:
@@ -394,9 +393,10 @@ class Stitcher:
         # result = blend.average_blend(image1, image2)
         mask = self.generate_mask(image1, image2)
         print("Blending")
-
-        result = blend.gaussian_blend(image1, image2, mask, mask_blend=10)
-        # result = blend.direct_blend(image1, image2, mask, mask_blend=2)
+        if use_gauss_blend:
+            result = blend.gaussian_blend(image1, image2, mask, mask_blend=10)
+        else:
+            result = blend.direct_blend(image1, image2, mask, mask_blend=2)
 
         # mask = (mask * 255).astype('uint8')
         # mask[:] = 255
@@ -559,14 +559,14 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(__file__))
 
     start_time = time.time()
-    img1 = cv2.imread("../resource/24-left.jpg")
-    img2 = cv2.imread("../resource/24-right.jpg")
+    img1 = cv2.imread("../resource/19-left.jpg")
+    img2 = cv2.imread("../resource/19-right.jpg")
     # matcher = Matcher(img1, img2, Method.ORB)
     # matcher.match(max_match_lenth=20, show_match=True,)
-    stitcher = Stitcher(img1, img2, Method.ORB, False)
+    stitcher = Stitcher(img1, img2, Method.SIFT, False)
     stitcher.stich(max_match_lenth=40, use_partial=False, use_new_match_method=1)
 
-    cv2.imwrite('../resource/24-orb-gf.jpg', stitcher.image)
+    cv2.imwrite('../resource/19-sift-gf.jpg', stitcher.image)
 
     print("Time: ", time.time() - start_time)
     print("M: ", stitcher.M)

@@ -10,7 +10,7 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
-__all__ = ['Ransac', 'PositionRansac', 'GeneticRansac', 'NewGeneticRansac']
+__all__ = ['Ransac', 'PositionRansac', 'GeneticRansac', 'NewGeneticRansac', 'GeneticTransform']
 
 
 class Ransac:
@@ -448,8 +448,8 @@ class GeneticTransform(Ransac):
 
         __str__ = __repr__
 
-    SAMPLE = 30
-    GROUP_SIZE = 10
+    SAMPLE = 40
+    GROUP_SIZE = 8
     GENERATION = 20
     MUTATION_RATE = 0.2
     MUTATION_COUNT = 1
@@ -461,6 +461,9 @@ class GeneticTransform(Ransac):
             data1 (np.ndarray): 位置点1
             data2 (np.ndarray): 位置点2
         """
+        random.seed(19580829)
+        np.random.seed(19580829)
+
         self.data1 = data1
         self.data2 = data2
         if(self.data1.shape != self.data2.shape):
@@ -472,15 +475,34 @@ class GeneticTransform(Ransac):
         self.GROUP_SIZE = min(self.GROUP_SIZE, max(self.points_length // 2, 4))
 
         self.population = []
-        for i in range(self.SAMPLE):
+        try_times = 0
+        
+        while len(self.population) < self.SAMPLE:
+            try_times += 1
+            if try_times > self.SAMPLE * 4:
+                if len(self.population) > 1:
+                    break
+                else:
+                    raise RuntimeError("Cannot find enough points")
             choice = np.random.choice(range(self.points_length), self.GROUP_SIZE, replace=0)
-
             M = self.get_lss_matrix(self.data1[choice], self.data2[choice])
-            indv = self.Individual(M, self.get_good_points(self.data1, self.data2, M))
+            good_points = self.get_good_points(self.data1, self.data2, M)
+            if good_points < 4:
+                continue
+            indv = self.Individual(M, good_points)
             self.population.append(indv)
 
     @staticmethod
-    def get_lss_matrix(data1: np.ndarray, data2: np.ndarray):
+    def get_lss_matrix(data1: np.ndarray, data2: np.ndarray) -> np.ndarray:
+        """利用最小二乘法计算变换矩阵
+
+        Args:
+            data1 (np.ndarray): 数据一
+            data2 (np.ndarray): 数据二
+
+        Returns:
+            np.ndarray: 变换矩阵
+        """
 
         data_length = data1.shape[0]
         X = np.array((8, 1), np.float)
@@ -520,7 +542,7 @@ class GeneticTransform(Ransac):
             self.population = sorted(self.population, reverse=True)
 
             # 去除一半
-            self.population = self.population[:self.SAMPLE // 2]
+            self.population = self.population[:len(self.population) // 2]
             # TODO: 实现轮盘选择
             # prop = [x.value / all_value for x in self.population]
             # all_value = sum([x.value for x in self.population])
@@ -555,7 +577,7 @@ class GeneticTransform(Ransac):
 
         # 获取最优点
         self.population = sorted(self.population, reverse=True)
-        if self.population[0].value > 0:
+        if self.population[0].value > 3:
             self.good_points = self.population[0].value
             return self.population[0].dna
         else:
@@ -599,14 +621,14 @@ def test():
                       [831.51373, 134.78401], [512.395, 243.65637], [329.65274, 756.0514], [502., 292.],
                       [523.2, 244.8], [522.72003, 244.8], [1870.3875, 1967.8467], [5208.884, 904.0897],
                       [661., 199.], [1872.2125, 1967.764], [1003.2909, 240.07318], [316., 736.], [
-                          612., 170.40001], [520.4737, 244.68483], [534.98895, 199.06564],
-                      [523., 245.], [582., 220.], [5072., 756.], [391.68002, 116.64001], [4572.2886, 1094.861], [1871.217, 1968.2616], [1003.2909, 238.87878]], dtype=np.float32)
+        612., 170.40001], [520.4737, 244.68483], [534.98895, 199.06564],
+        [523., 245.], [582., 220.], [5072., 756.], [391.68002, 116.64001], [4572.2886, 1094.861], [1871.217, 1968.2616], [1003.2909, 238.87878]], dtype=np.float32)
     data2 = np.array([[1080.0001, 221.18402], [5297.137, 400.12195], [1069.2001, 253.20001], [845.0337, 394.15], [1218., 168.], [1250.5305, 200.65819],
                       [1374.797, 93.31201], [1074.9546, 222.15727], [910.1282, 730.9691],
                       [1093., 177.], [1082., 221.], [1081.4401, 220.32], [2401.2292, 1874.5347],
                       [708., 389.], [1218., 168.], [2403.7178, 1875.1985], [1540.7682, 186.32545], [
-                          901., 711.], [1153., 261.], [1078.2721, 221.87523], [1094.8611, 176.67076],
-                      [847., 44.], [1426., 175.], [1244.4, 326.40002], [823., 32.], [5173.633, 906.1633], [2401.2292, 1873.7054], [1540.7682, 185.13106]], dtype=np.float32)
+        901., 711.], [1153., 261.], [1078.2721, 221.87523], [1094.8611, 176.67076],
+        [847., 44.], [1426., 175.], [1244.4, 326.40002], [823., 32.], [5173.633, 906.1633], [2401.2292, 1873.7054], [1540.7682, 185.13106]], dtype=np.float32)
     start = time.time()
     gr = GeneticRansac(data1, data2)
     print("Spent time: ", time.time() - start)
