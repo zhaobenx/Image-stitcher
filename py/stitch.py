@@ -112,7 +112,6 @@ class Matcher():
 
         match_len = min(len(self.match_points), max_match_lenth)
 
-
         # in case distance is 0
         max_distance = max(2 * self.match_points[0].distance, 20)
 
@@ -195,7 +194,9 @@ class Stitcher:
         else:
             self.M, _ = cv2.findHomography(
                 self.image_points1, self.image_points2, method=cv2.RANSAC)
-        
+
+        print("Good points and average distance: ", ransac.GeneticTransform.get_value(
+            self.image_points1, self.image_points2, self.M))
 
         left, right, top, bottom = self.get_transformed_size()
         # print(self.get_transformed_size())
@@ -243,7 +244,6 @@ class Stitcher:
         offset_x = np.min(self.image_points1[:, 0])
         offset_y = np.min(self.image_points1[:, 1])
 
-        height = np.max(self.image_points1[:, 1]) - offset_y
         x_mid = int((np.max(self.image_points1[:, 0]) + offset_x) / 2)
         y_mid = int((np.max(self.image_points1[:, 1]) + offset_y) / 2)
 
@@ -262,7 +262,6 @@ class Stitcher:
                           [center, [0, down], [right, 0]],
                           [center, [left, down], [left, 0]],
                           [[0, up], [left, up], [left, up]]]
-                         [center, up, left]]
 
         # 对点的位置进行分类
         for index in range(self.image_points1.shape[0]):
@@ -345,7 +344,6 @@ class Stitcher:
                         print(point)
                         cv2.circle(part, tuple(
                             map(int, point)), 22, (226, 43, 138), 8)
-                    how_image(part)
 
                     part = cv2.warpPerspective(
                         part, partial_M, (part.shape[1], part.shape[0]))
@@ -366,7 +364,6 @@ class Stitcher:
             np.ndarray: 融合结果
         """
 
-        result = blend.average_blend(image1, image2)
         mask = self.generate_mask(image1, image2)
         print("Blending")
         if use_gauss_blend:
@@ -374,7 +371,7 @@ class Stitcher:
         else:
             result = blend.direct_blend(image1, image2, mask, mask_blend=2)
 
-         return result
+        return result
 
     def generate_mask(self, image1: np.ndarray, image2: np.ndarray):
         """生成供融合使用的遮罩，由变换后图像的垂直平分线来构成分界线
@@ -402,7 +399,7 @@ class Stitcher:
                 return (y2 - y1) * y > -(x2 - x1) * (x - (x1 + x2) / 2) + (y2 - y1) * (y1 + y2) / 2
 
         mask = np.fromfunction(function, image1.shape)
-        
+
         # mask = mask&_i2+mask&i1+i1&_i2
         mask = np.logical_and(mask, np.logical_not(image2)) \
             + np.logical_and(mask, image1)\
