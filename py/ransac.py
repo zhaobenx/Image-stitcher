@@ -490,19 +490,25 @@ class GeneticTransform(Ransac):
             good_points, distance = self.get_value(self.data1, self.data2, M)
             if good_points < 4:
                 continue
-            indv = self.Individual(M, self.get_judgement(good_points, distance))
+            indv = self.Individual(M, self.get_judgement(self.data1, self.data2, M))
             self.population.append(indv)
 
-    @staticmethod
-    def get_judgement(good_points, distance):
+    @classmethod
+    def get_judgement(cls, points1: np.ndarray, points2: np.ndarray, M: np.ndarray, threshold=3) -> float:
         """用于生成适应度
 
         Args:
             good_points (int): 好点的个数
             distance (float): 好点的平方和
         """
+        transformed = cls.perspective_transform(points1, M)
+        dis = np.sum((transformed - points2) * (transformed - points2), axis=1)
+        good = dis < threshold * threshold
+        good_points = np.sum(good)
         if good_points == 0:
-            return -distance
+            return -np.sum(dis)
+
+        distance = np.sum(dis[good])
         return good_points - distance / good_points
 
     @staticmethod
@@ -592,7 +598,7 @@ class GeneticTransform(Ransac):
                 # gene *= np.random.chisquare(2, rand_index.size)
                 gene *= np.random.normal(1, .1, rand_index.size)
                 new.dna.put(rand_index, gene)
-                new.value = self.get_judgement(*self.get_value(self.data1, self.data2, new.dna))
+                new.value = self.get_judgement(self.data1, self.data2, new.dna)
                 self.population.append(new)
 
             children = []
@@ -614,7 +620,7 @@ class GeneticTransform(Ransac):
                     gene = child.dna.take(rand_index)
                     gene *= np.random.chisquare(2, rand_index.size)
                     child.dna.put(rand_index, gene)
-                child.value = self.get_judgement(*self.get_value(self.data1, self.data2, child.dna))
+                child.value = self.get_judgement(self.data1, self.data2, child.dna)
                 children.append(child)
 
             self.population = np.concatenate((self.population, children))
