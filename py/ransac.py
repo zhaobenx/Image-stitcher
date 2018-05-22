@@ -577,21 +577,22 @@ class GeneticTransform(Ransac):
 
     def run(self):
 
+        data = []
         for i in range(self.GENERATION):
 
             self.population = sorted(self.population, reverse=True)
-
+            data.append([j.value for j in self.population[:min(4, len(self.population))]])
             # 去除一半
             self.population = self.population[:len(self.population) // 2]
             # TODO: 实现轮盘选择
             # prop = [x.value / all_value for x in self.population]
             # all_value = sum([x.value for x in self.population])
             # self.population = np.random.choice(self.population, size=self.SAMPLE // 2, replace=False, p=prop)
-            print("The {} generation after selection: ".format(i), [i.value for i in self.population])
+        #    print("The {} generation after selection: ".format(i), [i.value for i in self.population])
 
             # 对前几项进行变异操作
-            for j in range(min(12, 4*len(self.population))):
-                new = deepcopy(self.population[j//3])
+            for j in range(min(12, 4 * len(self.population))):
+                new = deepcopy(self.population[j // 3])
                 rand_index = np.random.choice(range(8), self.MUTATION_COUNT, replace=0)
                 # 用正态分布~利用卡方分布变异~
                 gene = new.dna.take(rand_index)
@@ -624,16 +625,25 @@ class GeneticTransform(Ransac):
                 children.append(child)
 
             self.population = np.concatenate((self.population, children))
-            print("The {} generation after propagate:".format(i), [i.value for i in self.population])
+        #    print("The {} generation after propagate:".format(i), [i.value for i in self.population])
         # end loop for reproduction
 
         # 获取最优点
+        self.log(np.array(data).T)
         self.population = sorted(self.population, reverse=True)
         if self.population[0].value > 3:
             self.good_points = self.population[0].value
             return self.population[0].dna
         else:
             raise RuntimeError("Cannot get transfrom matrix")
+
+    def log(self, data):
+        """Save information during the evolution
+
+        Args:
+            data (any): 数据
+        """
+        print("!!!DATA: ", repr(data))
 
 
 def main():
