@@ -203,7 +203,10 @@ class Stitcher:
         width = int(max(right, self.image2.shape[1]) - min(left, 0))
         height = int(max(bottom, self.image2.shape[0]) - min(top, 0))
         print(width, height)
-        width, height = min(width, 10000), min(height, 10000)
+        # width, height = min(width, 10000), min(height, 10000)
+        if width * height > 8000 * 5000:
+            raise MemoryError("Too large to get the combination")
+
         if use_partial:
             self.partial_transform()
 
@@ -236,6 +239,11 @@ class Stitcher:
             show_image(self.image)
 
     def partial_transform(self):
+        """Deprecated, should not be used.
+        """
+
+        raise DeprecationWarning("Out of work, should not be used")
+
         def distance(p1, p2):
             return np.sqrt(
                 (p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1]))
@@ -383,20 +391,18 @@ class Stitcher:
             np.ndarray: 01数组
         """
         print("Generating mask")
-        center1 = self.image1.shape[0] / 2, self.image1.shape[1] / 2
+        # x, y
+        center1 = self.image1.shape[1] / 2, self.image1.shape[0] / 2
         center1 = self.get_transformed_position(center1)
-        center2 = self.image2.shape[0] / 2, self.image2.shape[1] / 2
+        center2 = self.image2.shape[1] / 2, self.image2.shape[0] / 2
         center2 = self.get_transformed_position(center2, M=self.adjustM)
         # 垂直平分线 y=-(x2-x1)/(y2-y1)* [x-(x1+x2)/2]+(y1+y2)/2
-        y1, x1 = center1
-        y2, x2 = center2
-        
-        if y2 > y1:
-            def function(x, y, *z):
-                return (y2 - y1) * y < -(x2 - x1) * (x - (x1 + x2) / 2) + (y2 - y1) * (y1 + y2) / 2
-        else:
-            def function(x, y, *z):
-                return (y2 - y1) * y > -(x2 - x1) * (x - (x1 + x2) / 2) + (y2 - y1) * (y1 + y2) / 2
+        x1, y1 = center1
+        x2, y2 = center2
+
+        # note that opencv is (y, x)
+        def function(y, x, *z):
+            return (y2 - y1) * y < -(x2 - x1) * (x - (x1 + x2) / 2) + (y2 - y1) * (y1 + y2) / 2
 
         mask = np.fromfunction(function, image1.shape)
 
@@ -404,6 +410,7 @@ class Stitcher:
         mask = np.logical_and(mask, np.logical_not(image2)) \
             + np.logical_and(mask, image1)\
             + np.logical_and(image1, np.logical_not(image2))
+
         return mask
 
     def get_transformed_size(self) ->Tuple[int, int, int, int]:
@@ -528,12 +535,12 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(__file__))
 
     start_time = time.time()
-    img1 = cv2.imread("../resource/19-left.jpg")
-    img2 = cv2.imread("../resource/19-right.jpg")
+    img1 = cv2.imread("../resource/29-left.jpg")
+    img2 = cv2.imread("../resource/29-right.jpg")
     stitcher = Stitcher(img1, img2, Method.SIFT, False)
-    stitcher.stich(max_match_lenth=40, use_partial=False, use_new_match_method=1)
+    stitcher.stich(max_match_lenth=40, use_partial=False, use_new_match_method=1, use_gauss_blend=0)
 
-    cv2.imwrite('../resource/19-sift-gf.jpg', stitcher.image)
+    # cv2.imwrite('../resource/19-sift-gf.jpg', stitcher.image)
 
     print("Time: ", time.time() - start_time)
     print("M: ", stitcher.M)
