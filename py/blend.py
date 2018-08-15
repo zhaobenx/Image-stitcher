@@ -137,7 +137,8 @@ def average_blend(image1: np.ndarray, image2: np.ndarray) -> np.ndarray:
 
 
 def gaussian_blend(image1: np.ndarray, image2: np.ndarray, mask: np.ndarray, mask_blend=3):
-    mask = gaussian_filter(mask.astype(float), (mask_blend, mask_blend, 0))
+    if mask_blend:
+        mask = gaussian_filter(mask.astype(float), (mask_blend, mask_blend, 0))
     # show_image((mask * 255).astype('uint8'))
     # show_image(image1)
     # show_image(image2)
@@ -146,7 +147,8 @@ def gaussian_blend(image1: np.ndarray, image2: np.ndarray, mask: np.ndarray, mas
 
 
 def direct_blend(image1: np.ndarray, image2: np.ndarray, mask: np.ndarray, mask_blend=0):
-    mask = gaussian_filter(mask.astype(float), (mask_blend, mask_blend, 0))
+    if mask_blend:
+        mask = gaussian_filter(mask.astype(float), (mask_blend, mask_blend, 0))
     if np.issubdtype(mask.dtype, np.integer):
         mask = mask / 255
     # show_image((mask * 255).astype('uint8'))

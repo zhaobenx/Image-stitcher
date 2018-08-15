@@ -27,6 +27,7 @@ class Ransac:
         Raises:
             ValueError: 输入数组形状不同
         """
+        random.seed(19270817)
         # print(repr(data1), repr(data2))
         self.data1 = data1
         self.data2 = data2
@@ -161,13 +162,15 @@ class Ransac:
             计算的透视变换矩阵
         """
 
+        # best_array = []
+        # now_array = []
         iter_times = 0
         best_M = None
         # random.seed(1)
         while iter_times < self.max_iter_times:
             M = self.random_calculate()
             if M is False:
-                return best_M
+                break
             good_nums = self.get_good_points(self.data1, self.data2, M, distance)
             if good_nums > self.good_points:
                 self.good_points = good_nums
@@ -175,6 +178,11 @@ class Ransac:
                 self.max_iter_times = min(self.max_iter_times,
                                           self.get_itereration_time(good_nums / self.points_length))
             iter_times += 1
+        #     best_array.append(self.good_points)
+        #     now_array.append(good_nums)
+        # print("!")
+        # print(repr(np.array(best_array)))
+        # print(repr(np.array(now_array)))
 
         return best_M
 
@@ -644,6 +652,244 @@ class GeneticTransform(Ransac):
             data (any): 数据
         """
         print("!!!DATA: ", repr(data))
+
+
+class GeneticTransformWithPosition(Ransac):
+
+    class Individual:
+        def __init__(self, dna: np.ndarray, value=0):
+            self.dna = dna
+            self.value = value
+
+        def __lt__(self, other: 'Individual'):
+            return self.value < other.value
+
+        def __repr__(self):
+            return "dna: <{}>, value: {}".format(self.dna, self.value)
+
+        __str__ = __repr__
+
+    SAMPLE = 40
+    GROUP_SIZE = 8
+    GENERATION = 20
+    MUTATION_RATE = 0.2
+    MUTATION_COUNT = 1
+
+    def __init__(self, data1: np.ndarray, data2: np.ndarray):
+        """在ransac的基础上利用遗传算法优化点选
+
+        Args:
+            data1 (np.ndarray): 位置点1
+            data2 (np.ndarray): 位置点2
+        """
+        random.seed(19580829)
+        np.random.seed(19580829)
+
+        self.data1 = data1
+        self.data2 = data2
+        if(self.data1.shape != self.data2.shape):
+            raise ValueError("Argument shape not equal")
+
+        self.points_length = self.data1.shape[0]
+        if self.points_length < 4:
+            raise RuntimeError("Not enough points to calculate")
+        # 初始化计算点到重心总距离以用于对距离的衡量
+        centroid = np.sum(data1, axis=0) / self.points_length
+        self.distance = np.sum(np.square(data1 - centroid)) / self.points_length
+
+        self.GROUP_SIZE = min(self.GROUP_SIZE, max(self.points_length // 2, 4))
+
+        self.population = []
+        try_times = 0
+
+        while len(self.population) < self.SAMPLE:
+            try_times += 1
+            if try_times > self.SAMPLE * 4:
+                if len(self.population) > 1:
+                    break
+                else:
+                    raise RuntimeError("Cannot find enough points")
+            choice = np.random.choice(range(self.points_length), self.GROUP_SIZE, replace=0)
+            M = self.get_lss_matrix(self.data1[choice], self.data2[choice])
+            good_points, distance = self.get_value(self.data1, self.data2, M)
+            if good_points < 4:
+                continue
+            indv = self.Individual(M, self.get_judgement(self.data1, self.data2, M))
+            self.population.append(indv)
+
+    def get_judgement(self, points1: np.ndarray, points2: np.ndarray, M: np.ndarray, threshold=3) -> float:
+        """用于生成适应度
+
+        Args:
+            good_points (int): 好点的个数
+            distance (float): 好点的平方和
+        """
+        transformed = self.perspective_transform(points1, M)
+        dis = np.sum((transformed - points2) * (transformed - points2), axis=1)
+        good = dis < threshold * threshold
+        """
+            这里我们应用位置偏离来作为适应度函数
+            即利用所有点与重心的偏离值的平均值来作为适应度函数
+        """
+        good_points = np.sum(good)
+
+        if good_points == 0:
+            return -np.sum(dis)
+
+        centroid = np.sum(points1[good], axis=0) / good_points
+        distance = np.sum(np.square(points1[good] - centroid))
+        """鉴于距离相差较远，我们利用 tanh 来对其进行归一，从而加大点数量对结果的影响而不是只是分散距离"""
+        stand_error = np.tanh(((distance / good_points) - self.distance) / self.distance) + 1  # 保持正数
+        interier_error = np.sum(dis[good]) / good_points
+
+        return good_points + stand_error - interier_error
+
+    @staticmethod
+    def get_lss_matrix(data1: np.ndarray, data2: np.ndarray) -> np.ndarray:
+        """利用最小二乘法计算变换矩阵
+
+        Args:
+            data1 (np.ndarray): 数据一
+            data2 (np.ndarray): 数据二
+
+        Returns:
+            np.ndarray: 变换矩阵
+        """
+
+        data_length = data1.shape[0]
+        X = np.array((8, 1), np.float)
+        A = np.zeros((2 * data_length, 8), np.float)
+        B = np.zeros((2 * data_length), np.float)
+
+        for i in range(data_length):
+            A[2 * i][0] = A[2 * i + 1][3] = data1[i][0]
+            A[2 * i][1] = A[2 * i + 1][4] = data1[i][1]
+            A[2 * i][2] = A[2 * i + 1][5] = 1
+            A[2 * i][3] = A[2 * i][4] = A[2 * i][5] = A[2 * i + 1][0] = A[2 * i + 1][1] = A[2 * i + 1][2] = 0
+            A[2 * i][6] = -data1[i][0] * data2[i][0]
+            A[2 * i][7] = -data1[i][1] * data2[i][0]
+            A[2 * i + 1][6] = -data1[i][0] * data2[i][1]
+            A[2 * i + 1][7] = -data1[i][1] * data2[i][1]
+            B[2 * i] = data2[i][0]
+            B[2 * i + 1] = data2[i][1]
+
+        try:
+            # X = linalg.solve(A, B).copy()
+            dot = np.dot
+            AT = A.T
+            X = dot(dot(linalg.inv(np.dot(AT, A)), AT), B)
+
+        except Exception as e:
+            print("Error when calcuating M: ", e)
+            return False
+        else:
+            X.resize((3, 3), refcheck=False)
+            X[2][2] = 1
+        return X
+
+    @classmethod
+    def get_value(cls, points1: np.ndarray, points2: np.ndarray, M: np.ndarray, threshold=3)-> Tuple[int, float]:
+        """求得在给定变换矩阵下，计算将points1变换后与points2之间的距离
+
+        Args:
+            points1 (np.ndarray): n*2形状数组
+            points2 (np.ndarray): n*2形状数组
+            M (np.ndarray): 3*3透视变换矩阵
+            threshold (int, optional): Defaults to 3. 距离阈值
+
+        Returns:
+            int: 优秀点个数
+            float: 优秀点偏差平方和
+        """
+
+        transformed = cls.perspective_transform(points1, M)
+        dis = np.sum((transformed - points2) * (transformed - points2), axis=1)
+        good = dis < threshold * threshold
+
+        if np.sum(good) > 0:
+            centroid = np.sum(points1[good], axis=0) / np.sum(good)
+            distance = np.sum(np.square(points1[good] - centroid))
+            error = distance / np.sum(good)
+        else:
+            error = 0
+        return np.sum(good), error
+
+    def run(self):
+
+        data = []
+        for i in range(self.GENERATION):
+
+            self.population = sorted(self.population, reverse=True)
+            data.append([j.value for j in self.population[:min(4, len(self.population))]])
+            # 去除一半
+            self.population = self.population[:len(self.population) // 2]
+            # TODO: 实现轮盘选择
+            # prop = [x.value / all_value for x in self.population]
+            # all_value = sum([x.value for x in self.population])
+            # self.population = np.random.choice(self.population, size=self.SAMPLE // 2, replace=False, p=prop)
+        #    print("The {} generation after selection: ".format(i), [i.value for i in self.population])
+
+            # 对前几项进行变异操作
+            for j in range(min(12, 4 * len(self.population))):
+                new = deepcopy(self.population[j // 3])
+                rand_index = np.random.choice(range(8), self.MUTATION_COUNT, replace=0)
+                # 用正态分布~利用卡方分布变异~
+                gene = new.dna.take(rand_index)
+                # gene *= np.random.chisquare(2, rand_index.size)
+                gene *= np.random.normal(1, .1, rand_index.size)
+                new.dna.put(rand_index, gene)
+                new.value = self.get_judgement(self.data1, self.data2, new.dna)
+                self.population.append(new)
+
+            children = []
+            # 交叉
+            while len(children) + len(self.population) <= self.SAMPLE:
+                mother = random.choice(self.population)
+                father = random.choice(self.population)
+                # 交换染色体
+                corss_index = random.choices(range(8), k=4)
+                child = deepcopy(mother)
+                child.dna.put([corss_index], father.dna.take([corss_index]))
+                # # 平均染色体
+                # child = self.Individual((mother.dna + father.dna) / 2)
+
+                # 变异
+                if random.random() < self.MUTATION_RATE:
+                    rand_index = np.random.choice(range(8), self.MUTATION_COUNT, replace=0)
+                    # 利用卡方分布变异
+                    gene = child.dna.take(rand_index)
+                    gene *= np.random.chisquare(2, rand_index.size)
+                    child.dna.put(rand_index, gene)
+                child.value = self.get_judgement(self.data1, self.data2, child.dna)
+                children.append(child)
+
+            self.population = np.concatenate((self.population, children))
+        #    print("The {} generation after propagate:".format(i), [i.value for i in self.population])
+        # end loop for reproduction
+
+        # 获取最优点
+        self.log(np.array(data).T)
+        self.population = sorted(self.population, reverse=True)
+        if self.population[0].value > 3:
+            self.good_points = self.population[0].value
+            return self.population[0].dna
+        else:
+            raise RuntimeError("Cannot get transfrom matrix")
+
+    def log(self, data):
+        """Save information during the evolution
+
+        Args:
+            data (any): 数据
+        """
+        print("!!!DATA: ", repr(data))
+
+
+if(1):
+    GeneticTransform = GeneticTransformWithPosition
+    import warnings
+    warnings.warn(
+        "In this program, original ga algorithm is replaced with a exprimental one, to disable this, go to this file and comment the line")
 
 
 def main():
