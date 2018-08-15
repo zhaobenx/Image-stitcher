@@ -13,9 +13,10 @@ import cv2
 import stitch
 
 show_image = stitch.show_image
+os.chdir(os.path.dirname(__file__))
 
 
-def main():
+def work():
     os.chdir(os.path.dirname(__file__))
     base_path = "../../论文/md/img/comparison"
     # os.chdir(base_path)
@@ -31,6 +32,7 @@ def main():
             for method in (stitch.Method.SIFT, stitch.Method.ORB):
                 for use_genetic in (True, False):
                     try:
+                        print("#===================================================#")
                         print("Image {} start stitching, using {}".format(name, method))
                         if use_genetic:
                             print("Using the genetic method")
@@ -38,7 +40,7 @@ def main():
                         start_time = time.time()
                         stitcher = stitch.Stitcher(img1, img2, method, False)
                         stitcher.stich(max_match_lenth=40, use_partial=False,
-                                       use_new_match_method=use_genetic, show_match_point=False, show_result=False, use_gauss_blend=False)
+                                       use_new_match_method=use_genetic, show_match_point=False, show_result=False, use_gauss_blend=1)
                         if use_genetic:
                             # cv2.imwrite('/result/{}-{}-genetic.jpg'.format(name,
                                                                         #    method), stitcher.image)
@@ -51,12 +53,66 @@ def main():
 
                         print("Time: ", time.time() - start_time)
                         # print("M: ", stitcher.M)
+
+                    except Exception as e:
+                        print("Error happens: ", e)
+        except Exception as e:
+            print("Error happens: ", e)
+
+
+def preview():
+    os.chdir(os.path.dirname(__file__))
+    image = [3, 19, 20, 22, 23, 24, 27, 29]
+    # image = [3]
+    for name in image:
+        try:
+            img1 = cv2.imread(("../resource/{}-left.jpg".format(name)))
+            img2 = cv2.imread(("../resource/{}-right.jpg".format(name)))
+            for method in (stitch.Method.SIFT, stitch.Method.ORB):
+                for use_genetic in (True, False):
+                    try:
+                        print("Image {} start stitching, using {}".format(name, method))
+                        if use_genetic:
+                            print("Using the genetic method")
+
+                        start_time = time.time()
+                        stitcher = stitch.Stitcher(img1, img2, method, False)
+                        stitcher.stich(max_match_lenth=40, use_partial=False,
+                                       use_new_match_method=use_genetic, show_match_point=True, show_result=True, use_gauss_blend=False)
+                        if use_genetic:
+                            cv2.imwrite('../resource/result_new/{}-{}-genetic.jpg'.format(name,
+                                                                                      method), stitcher.image)
+                        else:
+                            cv2.imwrite('../resource/result_new/{}-{}.jpg'.format(name, method), stitcher.image)
+
+                        print("Time: ", time.time() - start_time)
+                        # print("M: ", stitcher.M)
                         print("#===================================================#")
 
                     except Exception as e:
                         print("Error happens: ", e)
         except Exception as e:
             print("Error happens: ", e)
+
+
+def time_of_detector():
+    import time
+    image = [3, 19, 20]
+    for name in image:
+        image = cv2.imread(("../resource/{}-left.jpg".format(name)))
+        for method in (cv2.xfeatures2d.SURF_create, cv2.xfeatures2d.SIFT_create, cv2.ORB_create):
+
+            start = time.time()
+            for i in range(10):
+                method().detectAndCompute(image, None)
+            print("Image {}, using {}".format(name, method))
+            print("Spend time: ", time.time() - start)
+
+
+def main():
+    preview()
+    # work()
+    # time_of_detector()
 
 
 if __name__ == "__main__":
