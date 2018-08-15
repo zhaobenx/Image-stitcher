@@ -194,6 +194,7 @@ class Stitcher:
         else:
             self.M, _ = cv2.findHomography(
                 self.image_points1, self.image_points2, method=cv2.RANSAC)
+            # self.M = ransac.Ransac(self.image_points1, self.image_points2).run()
 
         print("Good points and average distance: ", ransac.GeneticTransform.get_value(
             self.image_points1, self.image_points2, self.M))
@@ -205,7 +206,10 @@ class Stitcher:
         print(width, height)
         # width, height = min(width, 10000), min(height, 10000)
         if width * height > 8000 * 5000:
-            raise MemoryError("Too large to get the combination")
+            # raise MemoryError("Too large to get the combination")
+            factor = width*height/(8000*5000)
+            width = int(width/factor)
+            height = int(height/factor)
 
         if use_partial:
             self.partial_transform()
@@ -377,7 +381,7 @@ class Stitcher:
         if use_gauss_blend:
             result = blend.gaussian_blend(image1, image2, mask, mask_blend=10)
         else:
-            result = blend.direct_blend(image1, image2, mask, mask_blend=2)
+            result = blend.direct_blend(image1, image2, mask, mask_blend=0)
 
         return result
 

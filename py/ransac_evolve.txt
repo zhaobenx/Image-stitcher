@@ -1,0 +1,393 @@
+Image 3 start stitching, using Method.SIFT
+Using the genetic method
+max distance:  98.8028335571289
+Min distance:  49.264591217041016
+match_len:  22
+Good points and average distance:  (18, 10.932089497253846)
+1017 1104
+Generating mask
+Blending
+Time:  1.5152592658996582
+#===================================================#
+Image 3 start stitching, using Method.SIFT
+max distance:  98.8028335571289
+Min distance:  49.264591217041016
+match_len:  22
+!
+array([14, 14, 14, 14, 15, 15, 15, 18])
+array([14, 10, 11,  5, 15, 14, 12, 18])
+Good points and average distance:  (18, 20.18702599541669)
+1038 1126
+Generating mask
+Blending
+Time:  1.5981316566467285
+#===================================================#
+Image 3 start stitching, using Method.ORB
+Using the genetic method
+max distance:  21.0
+Min distance:  5.0
+match_len:  25
+Good points and average distance:  (25, 32.043230744614725)
+1027 1088
+Generating mask
+Blending
+Time:  1.661045789718628
+#===================================================#
+Image 3 start stitching, using Method.ORB
+max distance:  21.0
+Min distance:  5.0
+match_len:  25
+!
+array([18, 18, 18, 18, 18, 20, 20, 20, 20, 20])
+array([18, 16, 12,  6,  4, 20, 20, 10, 18, 10])
+Good points and average distance:  (20, 60.3707035317136)
+1086 1432
+Generating mask
+Blending
+Time:  0.6970057487487793
+#===================================================#
+Image 19 start stitching, using Method.SIFT
+Using the genetic method
+max distance:  64.79969024658203
+Min distance:  32.264530181884766
+match_len:  9
+Good points and average distance:  (9, 3.0464024342360734)
+1844 1073
+Generating mask
+Blending
+Time:  2.5668134689331055
+#===================================================#
+Image 19 start stitching, using Method.SIFT
+max distance:  64.79969024658203
+Min distance:  32.264530181884766
+match_len:  9
+!
+array([8, 8])
+array([8, 7])
+Good points and average distance:  (8, 3.683806721072607e-11)
+1567 1035
+Generating mask
+Blending
+Time:  1.823291301727295
+#===================================================#
+Image 19 start stitching, using Method.ORB
+Using the genetic method
+max distance:  25.0
+Min distance:  12.0
+match_len:  40
+Good points and average distance:  (38, 64.85370923411021)
+1543 965
+Generating mask
+Blending
+Time:  1.1398084163665771
+#===================================================#
+Image 19 start stitching, using Method.ORB
+max distance:  25.0
+Min distance:  12.0
+match_len:  40
+!
+array([ 5, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30])
+array([ 5, 30,  9,  5, 24, 28, 14, 25, 16, 29, 12, 16, 11])
+Good points and average distance:  (30, 57.34616045406859)
+1543 960
+Generating mask
+Blending
+Time:  0.8766212463378906
+#===================================================#
+Image 20 start stitching, using Method.SIFT
+Using the genetic method
+max distance:  92.71461486816406
+Min distance:  46.14108657836914
+match_len:  10
+Good points and average distance:  (10, 4.343378065113296)
+1571 997
+Generating mask
+Blending
+Time:  2.0853466987609863
+#===================================================#
+Image 20 start stitching, using Method.SIFT
+max distance:  92.71461486816406
+Min distance:  46.14108657836914
+match_len:  10
+!
+array([ 4, 10])
+array([ 4, 10])
+Good points and average distance:  (10, 9.497811912915923)
+1579 988
+Generating mask
+Blending
+Time:  1.3600058555603027
+#===================================================#
+Image 20 start stitching, using Method.ORB
+Using the genetic method
+max distance:  27.0
+Min distance:  14.0
+match_len:  40
+Good points and average distance:  (39, 104.8976212931571)
+1607 1001
+Generating mask
+Blending
+Time:  0.7945644855499268
+#===================================================#
+Image 20 start stitching, using Method.ORB
+max distance:  27.0
+Min distance:  14.0
+match_len:  40
+!
+array([29, 29, 29, 29, 29, 29, 29, 29, 29, 30, 30, 30, 30])
+array([29,  5,  9,  9,  7,  5,  8,  2, 12, 30,  8, 26,  4])
+Good points and average distance:  (30, 87.16254340156931)
+1579 991
+Generating mask
+Blending
+Time:  0.6123478412628174
+#===================================================#
+Image 22 start stitching, using Method.SIFT
+Using the genetic method
+max distance:  56.665687561035156
+Min distance:  28.1069393157959
+match_len:  37
+Good points and average distance:  (24, 37.186141551398606)
+2395 2581
+Generating mask
+Blending
+Time:  5.022632122039795
+#===================================================#
+Image 22 start stitching, using Method.SIFT
+max distance:  56.665687561035156
+Min distance:  28.1069393157959
+match_len:  37
+!
+array([ 5, 11, 11])
+array([ 5, 11,  4])
+Good points and average distance:  (11, 30.989806866311703)
+2297 2207
+Generating mask
+Blending
+Time:  4.231024980545044
+#===================================================#
+Image 22 start stitching, using Method.ORB
+Using the genetic method
+max distance:  18.0
+Min distance:  8.0
+match_len:  40
+Good points and average distance:  (37, 52.50594105638672)
+2405 2569
+Generating mask
+Blending
+Time:  2.4052321910858154
+#===================================================#
+Image 22 start stitching, using Method.ORB
+max distance:  18.0
+Min distance:  8.0
+match_len:  40
+!
+array([12, 14, 14, 14, 14, 36])
+array([12, 14,  4,  9, 10, 36])
+Good points and average distance:  (36, 43.769678258932544)
+2397 2593
+Generating mask
+Blending
+Time:  2.3655812740325928
+#===================================================#
+Image 23 start stitching, using Method.SIFT
+Using the genetic method
+max distance:  169.44320678710938
+Min distance:  82.55906677246094
+match_len:  8
+Good points and average distance:  (5, 1.3498181311013289)
+2328 2464
+Generating mask
+Blending
+Time:  4.788411617279053
+#===================================================#
+Image 23 start stitching, using Method.SIFT
+max distance:  169.44320678710938
+Min distance:  82.55906677246094
+match_len:  8
+!
+array([4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+       5, 5, 5, 5, 5, 5, 5, 5, 5, 5])
+array([4, 5, 4, 4, 4, 4, 4, 5, 5, 4, 5, 4, 4, 5, 4, 5, 4, 4, 4, 4, 4, 4,
+       4, 5, 4, 4, 4, 4, 4, 4, 5, 4])
+Good points and average distance:  (5, 2.3908831710540936)
+2411 2494
+Generating mask
+Blending
+Time:  4.614869594573975
+#===================================================#
+Image 23 start stitching, using Method.ORB
+Using the genetic method
+max distance:  31.0
+Min distance:  15.0
+match_len:  14
+Good points and average distance:  (13, 28.759643882944143)
+2785 3005
+Generating mask
+Blending
+Time:  3.0411500930786133
+#===================================================#
+Image 23 start stitching, using Method.ORB
+max distance:  31.0
+Min distance:  15.0
+match_len:  14
+!
+array([ 6,  6, 10, 10, 10, 10, 10, 10, 11, 11, 11])
+array([ 6,  6, 10,  6,  5,  5, 10,  6, 11,  8,  7])
+Good points and average distance:  (11, 26.665471859780013)
+2591 2873
+Generating mask
+Blending
+Time:  2.7789688110351562
+#===================================================#
+Image 24 start stitching, using Method.SIFT
+Using the genetic method
+max distance:  75.02666473388672
+Min distance:  37.48332977294922
+match_len:  11
+Good points and average distance:  (11, 1.844682961284418)
+2477 2624
+Generating mask
+Blending
+Time:  7.372722625732422
+#===================================================#
+Image 24 start stitching, using Method.SIFT
+max distance:  75.02666473388672
+Min distance:  37.48332977294922
+match_len:  11
+!
+array([ 5,  5, 11])
+array([ 5,  5, 11])
+Good points and average distance:  (11, 10.12827853925404)
+2493 2693
+Generating mask
+Blending
+Time:  5.104132652282715
+#===================================================#
+Image 24 start stitching, using Method.ORB
+Using the genetic method
+max distance:  21.0
+Min distance:  9.0
+match_len:  18
+Good points and average distance:  (17, 22.80218605781505)
+2477 2606
+Generating mask
+Blending
+Time:  2.6523547172546387
+#===================================================#
+Image 24 start stitching, using Method.ORB
+max distance:  21.0
+Min distance:  9.0
+match_len:  18
+!
+array([ 9, 14, 15, 15, 15, 15, 15, 15])
+array([ 9, 14, 15,  5,  5,  6,  7,  4])
+Good points and average distance:  (15, 42.33270675596344)
+2508 2689
+Generating mask
+Blending
+Time:  3.0191903114318848
+#===================================================#
+Image 27 start stitching, using Method.SIFT
+Using the genetic method
+max distance:  64.1248779296875
+Min distance:  31.93743896484375
+match_len:  39
+Good points and average distance:  (38, 60.214962948896556)
+2226 3103
+Generating mask
+Blending
+Time:  6.800878524780273
+#===================================================#
+Image 27 start stitching, using Method.SIFT
+max distance:  64.1248779296875
+Min distance:  31.93743896484375
+match_len:  39
+!
+array([20, 24, 35, 35, 35])
+array([20, 24, 35, 16,  7])
+Good points and average distance:  (35, 110.99754578956838)
+2228 3105
+Generating mask
+Blending
+Time:  6.587231397628784
+#===================================================#
+Image 27 start stitching, using Method.ORB
+Using the genetic method
+max distance:  21.0
+Min distance:  7.0
+match_len:  17
+Good points and average distance:  (16, 33.045773747785056)
+2230 3140
+Generating mask
+Blending
+Time:  2.5573511123657227
+#===================================================#
+Image 27 start stitching, using Method.ORB
+max distance:  21.0
+Min distance:  7.0
+match_len:  17
+!
+array([12, 12, 12, 12, 13, 13, 13, 13, 13, 13, 13, 13])
+array([12, 10,  6, 12, 13, 11,  6,  7, 10,  4,  9, 13])
+Good points and average distance:  (13, 27.64814619002486)
+2115 3052
+Generating mask
+Blending
+Time:  2.305124044418335
+#===================================================#
+Image 29 start stitching, using Method.SIFT
+Using the genetic method
+max distance:  88.91568756103516
+Min distance:  45.45327377319336
+match_len:  40
+Good points and average distance:  (26, 47.19115836581838)
+5547 3298
+Generating mask
+Blending
+Time:  10.34068512916565
+#===================================================#
+Image 29 start stitching, using Method.SIFT
+max distance:  88.91568756103516
+Min distance:  45.45327377319336
+match_len:  40
+!
+array([ 5,  5,  5,  5,  5,  6,  8,  8,  8,  8,  8, 16, 16, 16, 16, 16, 16,
+       16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 20, 20, 20, 20, 20,
+       20, 22, 22, 22, 22, 22])
+array([ 5,  5,  5,  4,  4,  6,  8,  5,  5,  5,  6, 16,  5,  6,  4,  8,  5,
+        8,  4,  5,  5,  5,  4,  5,  6,  7,  4,  4,  6, 20,  6,  4,  2,  5,
+        5, 22,  6,  9,  9,  4])
+Good points and average distance:  (22, 14.806612001420628)
+5766 3409
+Generating mask
+Blending
+Time:  10.871376514434814
+#===================================================#
+Image 29 start stitching, using Method.ORB
+Using the genetic method
+max distance:  29.0
+Min distance:  14.0
+match_len:  16
+Good points and average distance:  (14, 30.805548842145893)
+6954 4890
+Generating mask
+Blending
+Time:  17.047736406326294
+#===================================================#
+Image 29 start stitching, using Method.ORB
+max distance:  29.0
+Min distance:  14.0
+match_len:  16
+!
+array([ 8,  8,  8,  8,  8,  8,  8,  8,  8,  8, 11, 11, 11, 11, 11, 11, 11,
+       11, 11, 11])
+array([ 8,  6,  7,  7,  5,  4,  6,  6,  8,  5, 11,  6,  9,  9,  4,  4,  5,
+        9,  4,  4])
+Good points and average distance:  (11, 20.38021242159148)
+5530 3421
+Generating mask
+Blending
+Time:  6.658377170562744
+#===================================================#
+[ INFO:0] Initialize OpenCL runtime...
